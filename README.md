@@ -8,6 +8,23 @@ Fetch–Decode–Execute instruction cycle.
 ## Learning Objective
 After completing the game, the player should be able to distinguish the Fetch, Decode, and Execute stages of the instruction cycle and classify common CPU actions into the correct stage.
 
+## Project Structure
+```
+.
+├── index.html
+├── README.md
+├── css/
+│   └── style.css
+└── js/
+    ├── questions.js
+    └── game.js
+```
+
+- `questions.js`: question bank and educational explanations
+- `game.js`: scoring, round progression, feedback, and interaction logic
+- `style.css`: visual styling
+- `index.html`: page structure and script loading
+
 ## Current Prototype
 - Runs directly in a browser.
 - Uses HTML, CSS, and JavaScript.
