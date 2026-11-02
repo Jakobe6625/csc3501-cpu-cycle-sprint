@@ -1,0 +1,20 @@
+const questions = [
+  { text: "The CPU reads the next instruction from memory using the program counter.", answer: "Fetch",
+    explanation: "Fetch retrieves the next instruction from memory." },
+  { text: "The control unit determines which operation the instruction requests.", answer: "Decode",
+    explanation: "Decode interprets the instruction's opcode and operands." },
+  { text: "The ALU adds two register values.", answer: "Execute",
+    explanation: "Execute performs the operation requested by the instruction." },
+  { text: "The instruction register receives the instruction that was just read from memory.", answer: "Fetch",
+    explanation: "This happens as the CPU brings the instruction into the processor." },
+  { text: "The CPU figures out which registers are needed by the instruction.", answer: "Decode",
+    explanation: "Decode identifies the instruction's required operands/resources." },
+  { text: "The processor compares two values for a conditional branch.", answer: "Execute",
+    explanation: "The comparison is the work performed by the instruction." },
+  { text: "The program counter identifies the address of the instruction to retrieve.", answer: "Fetch",
+    explanation: "The program counter participates in locating the next instruction." },
+  { text: "The control unit interprets the binary instruction format.", answer: "Decode",
+    explanation: "Decode translates the instruction bits into control decisions." },
+  { text: "The CPU performs the requested arithmetic or logical operation.", answer: "Execute",
+    explanation: "Execute is where the instruction's actual operation occurs." }
+];
