@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CPU Cycle Sprint</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="game-shell">
+    <header>
+      <p class="eyebrow">CSC 3501 • Game-Based Learning Prototype</p>
+      <h1>CPU Cycle Sprint</h1>
+      <p class="subtitle">Identify whether each CPU action belongs to Fetch, Decode, or Execute.</p>
+    </header>
+
+    <section class="hud">
+      <div>Score: <strong id="score">0</strong></div>
+      <div>Round: <strong id="round">1</strong>/<span id="total">9</span></div>
+    </section>
+
+    <section class="pipeline" aria-label="CPU instruction cycle">
+      <button class="stage" data-stage="Fetch">
+        <span class="stage-number">1</span>
+        <span class="stage-name">Fetch</span>
+        <span class="stage-copy">Get the next instruction from memory.</span>
+      </button>
+
+      <button class="stage" data-stage="Decode">
+        <span class="stage-number">2</span>
+        <span class="stage-name">Decode</span>
+        <span class="stage-copy">Interpret the instruction and determine what it needs.</span>
+      </button>
+
+      <button class="stage" data-stage="Execute">
+        <span class="stage-number">3</span>
+        <span class="stage-name">Execute</span>
+        <span class="stage-copy">Perform the operation.</span>
+      </button>
+    </section>
+
+    <section class="challenge">
+      <h2>What stage is this?</h2>
+      <p id="prompt" class="prompt"></p>
+      <p id="feedback" class="feedback" aria-live="polite"></p>
+      <button id="nextBtn" class="next" hidden>Next action</button>
+      <button id="restartBtn" class="next" hidden>Play again</button>
+    </section>
+
+    <section class="learning">
+      <h2>Learning objective</h2>
+      <p>
+        After completing the game, the player should be able to distinguish the Fetch,
+        Decode, and Execute stages of the instruction cycle and classify common CPU actions
+        into the correct stage.
+      </p>
+    </section>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
