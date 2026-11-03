@@ -16,7 +16,7 @@ After completing the game, the player should be able to distinguish the Fetch, D
 - The game gives immediate feedback and tracks the player's score.
 
 ## How to Run
-Open `index.html` in a modern web browser.
+https://cpu-cycle-sprint.netlify.app/
 
 ## Next Steps
 1. Add a visual CPU/datapath illustration.
