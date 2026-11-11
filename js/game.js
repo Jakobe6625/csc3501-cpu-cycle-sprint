@@ -374,23 +374,25 @@ function continueLabel() {
 function completeTicket() {
   stopTimer();
 
-  if (!state.ticketExpired) {
-    const job = currentJob();
-    const accuracyMultiplier = Math.max(0.35, 1 - state.ticketMistakes * 0.18);
-    const timeBonus = Math.min(12, Math.floor(state.timeRemaining / 5));
-    const payout = Math.max(5, Math.round(job.pay * accuracyMultiplier + timeBonus));
+  const job = currentJob();
+  const accuracyMultiplier = Math.max(0.35, 1 - state.ticketMistakes * 0.18);
+  const timeBonus = Math.min(12, Math.floor(state.timeRemaining / 5));
+  const payout = Math.max(5, Math.round(job.pay * accuracyMultiplier + timeBonus));
 
-    state.earnings += payout;
+  state.earnings += payout;
+  state.phase = "payout";
+  state.answered = true;
 
-    el.feedback.hidden = false;
-    el.feedback.classList.remove("bad");
-    el.feedbackIcon.textContent = "$";
-    el.feedbackTitle.textContent = "Ticket paid " + money(payout);
-    el.feedbackText.textContent = state.ticketMistakes === 0
-      ? "Clean repair. Full base pay plus a small speed bonus."
-      : "The ticket was completed, but mistakes reduced the final payout.";
-  }
+  el.feedback.hidden = false;
+  el.feedback.classList.remove("bad");
+  el.feedbackIcon.textContent = "$";
+  el.feedbackTitle.textContent = "Ticket paid " + money(payout);
+  el.feedbackText.textContent = state.ticketMistakes === 0
+    ? "Clean repair. Full base pay plus a small speed bonus."
+    : "The ticket was completed, but mistakes reduced the final payout.";
 
+  el.continueBtn.hidden = false;
+  el.continueBtn.textContent = state.jobIndex < mode().jobs - 1 ? "Take next ticket" : "Clock out";
   updateHud();
 }
 
@@ -413,7 +415,7 @@ function moveToNextTicketOrFinish() {
 function advance() {
   if (!state.answered) return;
 
-  if (state.ticketExpired) {
+  if (state.ticketExpired || state.phase === "payout") {
     moveToNextTicketOrFinish();
     return;
   }
@@ -431,12 +433,6 @@ function advance() {
   }
 
   completeTicket();
-  state.answered = true;
-  el.continueBtn.textContent = state.jobIndex < mode().jobs - 1 ? "Take next ticket" : "Clock out";
-  el.continueBtn.onclick = () => {
-    el.continueBtn.onclick = null;
-    moveToNextTicketOrFinish();
-  };
 }
 
 function finishShift() {
@@ -480,8 +476,6 @@ function startShift(modeKey = state.modeKey) {
 
   el.startScreen.hidden = true;
   el.shiftComplete.hidden = true;
-  el.continueBtn.onclick = null;
-
   startTicketTimer();
   renderDiagnosis();
   updateHud();
