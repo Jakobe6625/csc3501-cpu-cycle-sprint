@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="CPU Cycle Shop - a game for learning the Fetch-Decode-Execute cycle.">
+  <meta name="description" content="CPU Cycle Shop - diagnose and repair CPU instruction tickets while learning computer organization.">
   <title>CPU Cycle Shop</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -13,16 +13,16 @@
       <div>
         <p class="eyebrow">CSC 3501 • Game-Based Learning Project</p>
         <h1>CPU Cycle Shop</h1>
-        <p class="subtitle">Run a tiny CPU repair counter by processing instruction tickets through Fetch, Decode, and Execute.</p>
+        <p class="subtitle">Clock in, diagnose incoming CPU tickets, repair them through the instruction cycle, and earn your shift pay.</p>
       </div>
       <div class="open-badge"><span></span><div><small>SHOP STATUS</small><strong>OPEN</strong></div></div>
     </header>
 
     <section class="hud" aria-label="Shift statistics">
       <article><span>Ticket</span><strong><b id="jobNumber">1</b>/<b id="jobTotal">5</b></strong></article>
-      <article><span>Score</span><strong id="score">0</strong></article>
-      <article><span>Streak</span><strong id="streak">0</strong></article>
-      <article><span>Timer</span><strong id="timer">—</strong></article>
+      <article><span>Earnings</span><strong id="earnings">$0</strong></article>
+      <article><span>Repair streak</span><strong id="streak">0</strong></article>
+      <article><span>Ticket clock</span><strong id="timer">—</strong></article>
       <article class="satisfaction">
         <div><span>Customer satisfaction</span><strong id="satisfactionText">100%</strong></div>
         <div class="meter"><i id="satisfactionBar"></i></div>
@@ -37,42 +37,54 @@
 
     <section class="game-grid">
       <aside class="panel ticket-panel">
-        <p class="panel-label">INCOMING TICKET</p>
+        <div class="panel-heading">
+          <p class="panel-label">SERVICE COUNTER</p>
+          <span class="paperclip">●</span>
+        </div>
         <div class="ticket">
-          <div class="ticket-meta-top"><span id="ticketId">JOB-001</span><span id="ticketType">ARITHMETIC</span></div>
-          <p class="ticket-kicker">Instruction</p>
-          <h2 id="instruction">ADD R1, R2 → R3</h2>
-          <p id="ticketDescription">Add two register values and store the result.</p>
+          <div class="ticket-meta-top"><span id="ticketId">JOB-001</span><span id="ticketType">UNDIAGNOSED</span></div>
+          <p class="ticket-kicker">Customer report</p>
+          <p id="ticketSymptom" class="symptom">A CPU task is waiting to be diagnosed.</p>
+          <p class="ticket-kicker">Repair instruction</p>
+          <h2 id="instruction">Hidden until diagnosis</h2>
+          <p id="ticketDescription">Identify the topic first, then process the instruction through the repair benches.</p>
           <div class="ticket-bottom">
             <div><small>Priority</small><strong id="priority">Normal</strong></div>
-            <div><small>Base reward</small><strong id="rewardLabel">100 pts</strong></div>
+            <div><small>Potential pay</small><strong id="rewardLabel">$0</strong></div>
           </div>
         </div>
         <div class="tip">
           <span>i</span>
-          <p>Every instruction travels through all three stages. Your job is to identify what belongs at each station.</p>
+          <p>A correct diagnosis adds time. A wrong diagnosis cuts into the same clock you need to finish the repair.</p>
         </div>
       </aside>
 
       <section class="panel workbench">
+        <div class="bench-header">
+          <div><p class="panel-label">REPAIR FLOOR</p><h2>Technician workbench</h2></div>
+          <div class="clock-chip"><span>Time left</span><strong id="clockMirror">—</strong></div>
+        </div>
+
         <div class="pipeline">
-          <div class="station active" data-step="0"><b>1</b><div><strong>Fetch Bench</strong><small>Retrieve instruction</small></div></div>
+          <div class="station active" data-step="0"><b>D</b><div><strong>Diagnose</strong><small>Identify the topic</small></div></div>
           <span>→</span>
-          <div class="station" data-step="1"><b>2</b><div><strong>Decode Desk</strong><small>Interpret instruction</small></div></div>
+          <div class="station" data-step="1"><b>F</b><div><strong>Fetch Bench</strong><small>Retrieve instruction</small></div></div>
           <span>→</span>
-          <div class="station" data-step="2"><b>3</b><div><strong>Execute Bay</strong><small>Perform operation</small></div></div>
+          <div class="station" data-step="2"><b>D</b><div><strong>Decode Desk</strong><small>Interpret instruction</small></div></div>
+          <span>→</span>
+          <div class="station" data-step="3"><b>E</b><div><strong>Execute Bay</strong><small>Perform operation</small></div></div>
         </div>
 
         <article class="console">
           <div class="console-top">
             <div>
-              <p id="stationLabel" class="console-label">FETCH BENCH</p>
-              <h2 id="stagePrompt">What should happen first?</h2>
+              <p id="stationLabel" class="console-label">DIAGNOSTIC TERMINAL</p>
+              <h2 id="stagePrompt">What kind of CPU problem is this?</h2>
             </div>
-            <span id="stageBadge">Stage 1 of 3</span>
+            <span id="stageBadge">Diagnosis</span>
           </div>
 
-          <p class="hint">Choose the action that belongs at the current CPU-cycle station.</p>
+          <p id="hintText" class="hint">Read the service report and choose the Computer Organization topic that best matches the ticket.</p>
           <div id="options" class="choices" role="group" aria-label="Answer choices"></div>
 
           <div id="feedback" class="feedback" aria-live="polite" hidden>
@@ -80,35 +92,36 @@
             <div><strong id="feedbackTitle"></strong><p id="feedbackText"></p></div>
           </div>
 
-          <button id="continueBtn" class="primary" hidden>Continue</button>
+          <button id="continueBtn" class="primary" hidden>Begin repair</button>
         </article>
       </section>
 
       <aside class="panel manual">
-        <p class="panel-label">SHOP MANUAL</p>
-        <h2>Quick reference</h2>
+        <p class="panel-label">TECHNICIAN BOARD</p>
+        <h2>Repair reference</h2>
+        <div class="manual-item diagnose"><b>?</b><div><strong>Diagnose</strong><p>Classify the ticket: ALU, logic, memory, registers, control flow, flags, or stack.</p></div></div>
         <div class="manual-item"><b class="fetch">F</b><div><strong>Fetch</strong><p>Use the program counter to retrieve the next instruction from memory.</p></div></div>
-        <div class="manual-item"><b class="decode">D</b><div><strong>Decode</strong><p>Interpret the opcode and identify the operands or resources the instruction needs.</p></div></div>
-        <div class="manual-item"><b class="execute">E</b><div><strong>Execute</strong><p>Carry out the arithmetic, logic, memory, or control-flow operation.</p></div></div>
-        <div class="manual-note"><strong>Why this matters</strong><p>Tickets and answer positions change each shift, so the player has to reason about the CPU cycle instead of memorizing a pattern.</p></div>
+        <div class="manual-item"><b class="decode">D</b><div><strong>Decode</strong><p>Interpret the opcode and identify operands, addresses, or resources.</p></div></div>
+        <div class="manual-item"><b class="execute">E</b><div><strong>Execute</strong><p>Carry out the arithmetic, logic, memory, stack, or control-flow operation.</p></div></div>
+        <div class="manual-note"><strong>Shop rule</strong><p>Ticket order and answer positions shuffle every shift. Rush Hour also gives you less time and harsher penalties.</p></div>
       </aside>
     </section>
 
     <section id="startScreen" class="modal">
       <div class="modal-card mode-card">
-        <p class="eyebrow">CHOOSE YOUR SHIFT</p>
-        <h2>Clock in at CPU Cycle Shop</h2>
-        <p>Pick a mode. Both use the same CPU concepts, but Rush Hour adds time pressure and tougher penalties.</p>
+        <p class="eyebrow">CLOCK IN</p>
+        <h2>Choose your shift</h2>
+        <p>Every ticket starts with a diagnosis, then moves through Fetch, Decode, and Execute. The ticket clock keeps running through the whole repair.</p>
         <div class="mode-options">
           <button class="mode-option" data-mode="training" type="button">
             <span class="mode-icon">T</span>
             <strong>Training Shift</strong>
-            <small>5 tickets • No timer • Standard scoring</small>
+            <small>5 tickets • 50 sec each • +6 sec correct diagnosis • forgiving penalties</small>
           </button>
           <button class="mode-option rush" data-mode="rush" type="button">
             <span class="mode-icon">R</span>
             <strong>Rush Hour</strong>
-            <small>7 tickets • 12 seconds per stage • Time bonus</small>
+            <small>7 tickets • 32 sec each • +4 sec correct diagnosis • tougher penalties</small>
           </button>
         </div>
       </div>
@@ -117,16 +130,16 @@
     <section id="shiftComplete" class="modal" hidden>
       <div class="modal-card">
         <p class="eyebrow">SHIFT COMPLETE</p>
-        <h2>Nice work, technician.</h2>
+        <h2>Clock out, technician.</h2>
         <p id="finalSummary"></p>
         <div class="final-stats">
-          <div><span>Final score</span><strong id="finalScore">0</strong></div>
+          <div><span>Total earnings</span><strong id="finalEarnings">$0</strong></div>
           <div><span>Accuracy</span><strong id="finalAccuracy">0%</strong></div>
           <div><span>Satisfaction</span><strong id="finalSatisfaction">100%</strong></div>
           <div><span>Best streak</span><strong id="bestStreak">0</strong></div>
         </div>
         <div class="end-actions">
-          <button id="restartBtn" class="primary">Replay this mode</button>
+          <button id="restartBtn" class="primary">Work another shift</button>
           <button id="changeModeBtn" class="secondary-btn">Change mode</button>
         </div>
       </div>
