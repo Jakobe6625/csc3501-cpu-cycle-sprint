@@ -1,168 +1,240 @@
 export const TOPICS = [
-  { key: "arithmetic", label: "ALU / Arithmetic" },
-  { key: "logic", label: "Logic / Bitwise" },
-  { key: "memory", label: "Memory Access" },
-  { key: "registers", label: "Registers / Data Move" },
-  { key: "control", label: "Control Flow" },
-  { key: "flags", label: "Flags / Comparison" },
-  { key: "stack", label: "Stack / Procedure" }
+  { key: "pointers", label: "Pointers / Memory Addressing", tier: "main" },
+  { key: "twos", label: "Two's Complement / Signed Integers", tier: "main" },
+  { key: "float", label: "IEEE 754 / Floating Point", tier: "main" },
+  { key: "boolean", label: "Boolean Logic / Circuits", tier: "main" },
+  { key: "branching", label: "Branching / Control Flow", tier: "main" },
+  { key: "registers", label: "x86 Registers", tier: "main" },
+  { key: "endian", label: "Endianness", tier: "overtime" },
+  { key: "threads", label: "Multithreading / Race Conditions", tier: "overtime" },
+  { key: "parallel", label: "GPU / Parallelism", tier: "overtime" },
+  { key: "hierarchy", label: "Memory Hierarchy / Cache", tier: "overtime" }
 ];
 
-const stage = (name, prompt, choices, correct, explanation) => ({ name, prompt, choices, correct, explanation });
+const step = (name, short, prompt, choices, correct, explanation, hint = "") => ({
+  name, short, prompt, choices, correct, explanation, hint
+});
 
 export const JOBS = [
   {
-    id:"JOB-104", topic:"arithmetic", priority:"Normal", pay:42,
-    symptom:"A calculation request needs two register values combined and saved to a third register.",
-    instruction:"ADD R1, R2 → R3",
-    description:"Add the values in R1 and R2, then store the result in R3.",
-    stages:[
-      stage("Fetch","What should happen at the Fetch Bench?",["Read the instruction at the program counter from memory into the instruction register.","Add R1 and R2 immediately.","Identify R3 as the destination register."],0,"Fetch retrieves the next encoded instruction from memory using the program counter."),
-      stage("Decode","What belongs at the Decode Desk?",["Store the sum into R3.","Interpret ADD and identify R1, R2, and R3.","Retrieve the next instruction from memory."],1,"Decode interprets the opcode and identifies the required operands and destination."),
-      stage("Execute","What should happen in the Execute Bay?",["Increment the program counter again.","Interpret the opcode as ADD.","Use the ALU to add R1 and R2 and write the result to R3."],2,"Execute is where the ALU performs the arithmetic operation and writes the result.")
+    id: "PTR-101", tier: "main", topic: "pointers", priority: "Normal", pay: 28,
+    symptom: "My program reads the first score correctly, but after I move to the next item it starts pulling garbage values.",
+    instruction: "Pointer arithmetic is landing on the wrong address.",
+    description: "Trace how the pointer advances, correct the address calculation, and verify the next element.",
+    stages: [
+      step("Trace address", "Follow the pointer", "An int pointer starts at address 0x1000. On a 4-byte int system, where should p + 1 point?", ["0x1001", "0x1002", "0x1004"], 2, "Pointer arithmetic advances by the size of the pointed-to type, so an int pointer moves 4 bytes.", "Think in elements, not raw bytes."),
+      step("Repair pointer", "Fix the offset", "The code manually adds 1 byte to reach the next int. What is the best repair?", ["Advance by sizeof(int) bytes or use p + 1", "Add 2 bytes instead", "Change the int to a char"], 0, "Using p + 1 lets C scale the address by sizeof(int), avoiding a misaligned element address."),
+      step("Verify read", "Confirm the value", "After the fix, what should be verified?", ["That the pointer now lands on the next valid int element", "That the pointer never changes", "That every value becomes zero"], 0, "The repair is successful when the pointer advances to the next intended element and reads valid data.")
     ]
   },
   {
-    id:"JOB-126", topic:"arithmetic", priority:"High", pay:50,
-    symptom:"A signed value must be reduced by another register value without changing the source register.",
-    instruction:"SUB R8, R3 → R8",
-    description:"Subtract R3 from R8 and store the result back into R8.",
-    stages:[
-      stage("Fetch","How does this SUB repair begin?",["Subtract R3 from R8.","Read the SUB instruction from memory using the program counter.","Identify the two input registers."],1,"The encoded SUB instruction has to be fetched before it can be interpreted."),
-      stage("Decode","What does Decode determine?",["Interpret SUB and identify R8 and R3 as operands, with R8 as destination.","Perform the subtraction.","Fetch the instruction bits from memory."],0,"Decode determines the operation and the registers referenced by the instruction."),
-      stage("Execute","What completes the repair?",["Read another instruction.","Use the ALU to subtract R3 from R8 and write the result to R8.","Interpret the opcode field."],1,"Execute performs the subtraction and stores the result.")
+    id: "PTR-118", tier: "main", topic: "pointers", priority: "High", pay: 34,
+    symptom: "A function says it changed my variable, but when it returns the original value is exactly the same.",
+    instruction: "The function is changing a copy instead of the caller's value.",
+    description: "Identify the missing address handoff, repair the parameter, and verify the caller changes.",
+    stages: [
+      step("Inspect call", "Check the argument", "Which call gives a function access to the original integer x?", ["repair(x)", "repair(&x)", "repair(*x)"], 1, "Passing &x sends the address of x so the function can modify the caller's variable."),
+      step("Dereference", "Write through pointer", "Inside void repair(int *p), which statement changes the original value?", ["p = 10;", "&p = 10;", "*p = 10;"], 2, "Dereferencing p with *p writes to the memory location that p points to."),
+      step("Verify caller", "Confirm persistence", "What proves the repair worked?", ["x has the new value after repair returns", "The pointer variable p has a new address", "The function uses no parameters"], 0, "A pointer-based update is successful when the caller's original variable reflects the change.")
     ]
   },
   {
-    id:"JOB-217", topic:"memory", priority:"High", pay:54,
-    symptom:"A program needs a value from a specific memory address copied into a CPU register.",
-    instruction:"LOAD R4, [0x20]",
-    description:"Load the value stored at memory address 0x20 into register R4.",
-    stages:[
-      stage("Fetch","How does the LOAD instruction begin?",["Read the LOAD instruction itself from the address pointed to by the program counter.","Immediately read the data at 0x20.","Write the memory value into R4."],0,"The processor fetches the instruction before it knows a LOAD is being requested."),
-      stage("Decode","What should the control unit determine?",["The operation is LOAD, the destination is R4, and the referenced address is 0x20.","The final data value in R4.","The next instruction after LOAD."],0,"Decode identifies the LOAD opcode, destination register, and address information."),
-      stage("Execute","Which action completes this LOAD?",["Translate the opcode again.","Read the data at 0x20 and place it into R4.","Fetch the LOAD instruction again."],1,"Execute performs the requested memory access and updates the destination register.")
+    id: "INT-204", tier: "main", topic: "twos", priority: "High", pay: 32,
+    symptom: "An 8-bit signed counter was at 127. I added one and it suddenly became -128.",
+    instruction: "Signed overflow wrapped the two's-complement bit pattern.",
+    description: "Interpret the sign bit, recognize the signed range, and choose a safe repair.",
+    stages: [
+      step("Read bits", "Interpret signed data", "In 8-bit two's complement, what value does 10000000 represent?", ["128", "-128", "-127"], 1, "For 8-bit two's complement, 10000000 is the minimum representable value: -128."),
+      step("Check range", "Find the limit", "What is the valid range of an 8-bit signed two's-complement integer?", ["-128 to 127", "-127 to 128", "0 to 255"], 0, "An 8-bit signed value reserves the top bit for sign, giving a range from -128 through 127."),
+      step("Repair storage", "Prevent overflow", "What is the safest fix if the counter must exceed 127?", ["Use a wider signed integer type", "Keep adding and ignore the wrap", "Flip the sign bit manually"], 0, "A wider type increases the representable range and avoids the 8-bit overflow.")
     ]
   },
   {
-    id:"JOB-244", topic:"memory", priority:"Normal", pay:46,
-    symptom:"A register value needs to be written out to a specific location in main memory.",
-    instruction:"STORE R2, [0x40]",
-    description:"Store the value in R2 into memory address 0x40.",
-    stages:[
-      stage("Fetch","What is the first CPU-cycle action?",["Write R2 to 0x40.","Read the STORE instruction from memory using the program counter.","Identify R2 as the source."],1,"The STORE instruction must be fetched before the processor knows what operation to perform."),
-      stage("Decode","What information is established during Decode?",["The STORE opcode, source R2, and target address 0x40.","The next program-counter value only.","The successful memory write itself."],0,"Decode identifies the operation and the source/address information."),
-      stage("Execute","What completes the STORE ticket?",["Place the value from R2 into memory location 0x40.","Interpret the opcode as STORE.","Move STORE into the instruction register."],0,"Execute performs the requested write to memory.")
+    id: "INT-221", tier: "main", topic: "twos", priority: "Normal", pay: 27,
+    symptom: "The bits 11111110 are showing up as 254 in one place, but this field is supposed to be signed.",
+    instruction: "The same bit pattern is being interpreted with the wrong signedness.",
+    description: "Decode the bit pattern as two's complement and verify the signed interpretation.",
+    stages: [
+      step("Inspect sign", "Check the high bit", "For an 8-bit signed value, what does a leading 1 usually indicate?", ["A negative number", "A floating-point number", "An ASCII letter"], 0, "In two's complement, the most significant bit participates in the negative-value encoding."),
+      step("Decode value", "Convert the bits", "What signed 8-bit value is 11111110?", ["254", "-2", "-126"], 1, "11111110 is -2 in 8-bit two's-complement representation."),
+      step("Verify type", "Match interpretation", "What should the program check next?", ["That the field is read using a signed 8-bit type", "That every byte is treated as text", "That the value is multiplied by 2"], 0, "Using the intended signed type makes the bit pattern decode consistently as -2.")
     ]
   },
   {
-    id:"JOB-308", topic:"logic", priority:"Normal", pay:44,
-    symptom:"Two bit patterns need to be masked so only bits set in both inputs remain set.",
-    instruction:"AND R5, R6 → R7",
-    description:"Perform a bitwise AND on R5 and R6, storing the result in R7.",
-    stages:[
-      stage("Fetch","What belongs in Fetch?",["Perform AND in the ALU.","Read the AND instruction from memory using the program counter.","Determine the source registers."],1,"Fetch obtains the instruction regardless of the instruction type."),
-      stage("Decode","What should happen during Decode?",["Identify AND, source registers R5 and R6, and destination R7.","Write the final result into R7.","Read the next instruction."],0,"Decode identifies the logical operation and participating registers."),
-      stage("Execute","What action belongs in Execute?",["Use the ALU to perform bitwise AND and write the result to R7.","Move instruction bits into the instruction register.","Determine which opcode means AND."],0,"The actual bitwise operation is performed during Execute.")
+    id: "FLT-305", tier: "main", topic: "float", priority: "Normal", pay: 30,
+    symptom: "My code adds 0.1 and 0.2, but an exact comparison against 0.3 sometimes says they are different.",
+    instruction: "Binary floating-point cannot represent every decimal fraction exactly.",
+    description: "Recognize representation error, choose a tolerant comparison, and verify the result.",
+    stages: [
+      step("Inspect precision", "Spot approximation", "Why can 0.1 be slightly imprecise in binary floating point?", ["Its binary fraction repeats and must be rounded", "The CPU stores decimals as text", "0.1 is outside the float range"], 0, "Many decimal fractions repeat in base 2, so IEEE 754 stores a rounded approximation."),
+      step("Repair compare", "Use tolerance", "Which comparison is best for values expected to be approximately equal?", ["a == b always", "abs(a - b) < epsilon", "a > b && a < b"], 1, "A small tolerance accounts for expected floating-point rounding error."),
+      step("Verify result", "Check acceptable error", "What should verification focus on?", ["Whether the difference is within the application's tolerance", "Whether the values print with no decimal places", "Whether both values are integers"], 0, "Floating-point correctness is often about acceptable numerical error rather than exact bit-for-bit equality.")
     ]
   },
   {
-    id:"JOB-331", topic:"logic", priority:"High", pay:52,
-    symptom:"A bit field needs selected bits toggled whenever the two input bits differ.",
-    instruction:"XOR R7, R8 → R5",
-    description:"Perform a bitwise XOR on R7 and R8, storing the result in R5.",
-    stages:[
-      stage("Fetch","What belongs at Fetch for XOR?",["Read the XOR instruction from memory at the current program-counter address.","Perform XOR in the ALU.","Choose R5 as the destination."],0,"Fetch retrieves the instruction itself from memory."),
-      stage("Decode","What does Decode do for XOR?",["Interpret XOR and identify R7, R8, and R5.","Calculate the XOR result.","Retrieve the instruction from memory."],0,"Decode identifies the operation and its register operands."),
-      stage("Execute","What completes this XOR ticket?",["Interpret the opcode.","Use the ALU to XOR R7 and R8 and write the result to R5.","Fetch the next instruction."],1,"Execute performs the XOR calculation and writes the result.")
+    id: "FLT-319", tier: "main", topic: "float", priority: "High", pay: 36,
+    symptom: "A very tiny change disappears when I add it to a much larger floating-point number.",
+    instruction: "The smaller value is below the available precision at that magnitude.",
+    description: "Identify precision loss, choose a safer numerical approach, and verify the scale.",
+    stages: [
+      step("Inspect scale", "Compare magnitudes", "What can happen when adding a tiny float to a much larger float?", ["The tiny change can be rounded away", "The large number always becomes zero", "The CPU switches to two's complement"], 0, "Floating-point has finite precision, so a tiny increment can fall below the spacing between representable values."),
+      step("Repair math", "Protect precision", "Which change can help when precision matters?", ["Use a higher-precision type such as double", "Convert every value to a pointer", "Force all exponents to zero"], 0, "A higher-precision representation can preserve smaller differences over a wider range."),
+      step("Verify scale", "Test edge cases", "What should the technician test after the change?", ["Values with very different magnitudes", "Only the number 1.0", "Only negative integers"], 0, "Testing large and small magnitudes confirms whether the precision issue is actually resolved.")
     ]
   },
   {
-    id:"JOB-402", topic:"registers", priority:"Normal", pay:38,
-    symptom:"A value needs to move between CPU registers without changing the source.",
-    instruction:"MOV R6 → R1",
-    description:"Copy the value in R6 into register R1.",
-    stages:[
-      stage("Fetch","What is the Fetch action for MOV?",["Copy R6 into R1.","Retrieve the MOV instruction from memory using the program counter.","Choose the destination register."],1,"Fetch retrieves MOV before the processor knows what transfer is requested."),
-      stage("Decode","What should Decode determine?",["MOV copies from R6 to R1.","The final copied value.","The next instruction address."],0,"Decode identifies the MOV operation, source, and destination registers."),
-      stage("Execute","What belongs in Execute?",["Copy the value from R6 into R1.","Fetch MOV again.","Interpret the MOV opcode."],0,"Execute performs the requested register transfer.")
+    id: "LOG-402", tier: "main", topic: "boolean", priority: "Normal", pay: 29,
+    symptom: "An alarm should turn on when sensor A OR sensor B is active, but right now it only turns on when both are active.",
+    instruction: "The circuit is using AND where the requirement calls for OR.",
+    description: "Read the truth behavior, replace the incorrect gate, and verify all input combinations.",
+    stages: [
+      step("Read behavior", "Match truth table", "Which gate outputs 1 when either input is 1?", ["AND", "OR", "XOR only"], 1, "OR outputs 1 when A, B, or both inputs are 1."),
+      step("Repair gate", "Swap the logic", "What repair matches the customer requirement?", ["Replace AND with OR", "Replace AND with NOT", "Add a second AND gate"], 0, "The requested behavior is directly described by an OR gate."),
+      step("Verify table", "Test all inputs", "Which input set should also produce 1 after the repair?", ["A=1, B=0", "A=0, B=0", "Only A=1, B=1"], 0, "With OR logic, either single active input should trigger the output.")
     ]
   },
   {
-    id:"JOB-438", topic:"registers", priority:"Normal", pay:40,
-    symptom:"A small constant needs to be placed directly into a general-purpose register.",
-    instruction:"MOV #12 → R4",
-    description:"Place the immediate value 12 into register R4.",
-    stages:[
-      stage("Fetch","How does this immediate MOV begin?",["Write 12 into R4.","Fetch the MOV-immediate instruction from memory.","Convert 12 to decimal."],1,"The CPU first fetches the encoded instruction containing the immediate operand."),
-      stage("Decode","What is identified during Decode?",["MOV is requested, R4 is the destination, and 12 is an immediate operand.","R4 already contains 12.","The next instruction must be a branch."],0,"Decode distinguishes an immediate operand from a register or memory operand."),
-      stage("Execute","What action completes the instruction?",["Write the immediate value 12 into R4.","Fetch the same instruction again.","Only increment the program counter."],0,"Execute performs the data movement into the destination register.")
+    id: "LOG-417", tier: "main", topic: "boolean", priority: "High", pay: 35,
+    symptom: "A status light should turn on only when two inputs are different, but it also turns on when both inputs are 1.",
+    instruction: "The circuit needs XOR behavior instead of OR.",
+    description: "Identify the truth-table mismatch, choose XOR, and verify the equal-input cases.",
+    stages: [
+      step("Inspect table", "Find the pattern", "Which gate outputs 1 only when its two inputs differ?", ["AND", "OR", "XOR"], 2, "XOR is true when exactly one of the two inputs is true."),
+      step("Repair logic", "Choose the gate", "What should replace the current OR gate?", ["XOR", "AND", "NOR"], 0, "XOR matches the 'different inputs only' requirement."),
+      step("Verify equal", "Test matching inputs", "After the repair, what should XOR output for A=1, B=1?", ["1", "0", "Undefined"], 1, "Equal inputs produce 0 with XOR.")
     ]
   },
   {
-    id:"JOB-523", topic:"control", priority:"High", pay:58,
-    symptom:"Program flow may need to jump to LOOP depending on whether two registers differ.",
-    instruction:"BNE R1, R2, LOOP",
-    description:"Branch to LOOP if the values in R1 and R2 are not equal.",
-    stages:[
-      stage("Fetch","How does this branch enter the CPU cycle?",["Compare R1 and R2 immediately.","Read BNE from memory at the current program-counter address.","Jump to LOOP before interpreting it."],1,"Even a branch begins by fetching the instruction."),
-      stage("Decode","What should Decode determine?",["BNE compares R1 and R2 and may change control flow to LOOP.","Whether R1 and R2 are actually different.","The final program-counter value."],0,"Decode identifies the branch condition, operands, and target."),
-      stage("Execute","Which action belongs in Execute?",["Read BNE from memory.","Interpret the register fields.","Compare R1 and R2 and update the program counter to LOOP if they differ."],2,"Execute performs the comparison and applies the branch decision.")
+    id: "BR-508", tier: "main", topic: "branching", priority: "High", pay: 38,
+    symptom: "The program compares two equal values, but instead of jumping to the success block it keeps falling through.",
+    instruction: "The conditional branch is not matching the equality condition.",
+    description: "Inspect the comparison flags, select the correct branch condition, and verify control flow.",
+    stages: [
+      step("Inspect flags", "Check comparison", "After CMP finds two values equal, which condition is expected?", ["Zero flag set", "Carry flag must always clear", "No flags change"], 0, "Equality after CMP is represented by the zero condition being true."),
+      step("Repair branch", "Choose the jump", "Which x86-style branch matches equality?", ["JNE", "JE/JZ", "JMP only if negative"], 1, "JE or JZ branches when the comparison indicates equality."),
+      step("Verify flow", "Follow the target", "What proves the repair worked?", ["Equal values transfer control to the success target", "Every comparison jumps", "The program counter never changes"], 0, "The correct branch should alter control flow only when the equality condition is satisfied.")
     ]
   },
   {
-    id:"JOB-547", topic:"control", priority:"High", pay:58,
-    symptom:"Program flow may need to jump to DONE when two register values match.",
-    instruction:"BEQ R3, R4, DONE",
-    description:"Branch to DONE if R3 and R4 contain equal values.",
-    stages:[
-      stage("Fetch","How does BEQ begin?",["Compare R3 and R4 immediately.","Read BEQ from memory using the program counter.","Jump to DONE before decoding."],1,"Every instruction, including a branch, first has to be fetched."),
-      stage("Decode","What information is identified?",["BEQ compares R3 and R4 and may branch to DONE.","Whether R3 and R4 are already equal.","The final branch decision."],0,"Decode identifies the branch condition, operands, and target."),
-      stage("Execute","What happens during Execute?",["Compare R3 and R4 and update the program counter to DONE if equal.","Read BEQ from memory.","Interpret the register fields."],0,"Execute performs the comparison and applies control flow.")
+    id: "BR-526", tier: "main", topic: "branching", priority: "Normal", pay: 31,
+    symptom: "A loop is supposed to stop when the counter reaches zero, but it keeps repeating forever.",
+    instruction: "The loop's exit condition is inverted or testing the wrong branch.",
+    description: "Trace the condition, repair the branch decision, and verify termination.",
+    stages: [
+      step("Trace loop", "Check the exit", "If the loop should stop when count == 0, what must be tested each iteration?", ["Whether count is zero", "Whether count is a pointer", "Whether count is floating point"], 0, "The control-flow decision must directly test the intended termination condition."),
+      step("Repair condition", "Fix the branch", "Which structure matches 'repeat while count is not zero'?", ["Branch back while count != 0", "Branch back while count == 0", "Always branch back"], 0, "The loop continues only while the counter remains nonzero."),
+      step("Verify stop", "Confirm termination", "What is the key test case?", ["A run where count eventually becomes 0 and exits", "A run with no counter update", "A run that branches unconditionally forever"], 0, "The repaired loop must demonstrate that reaching zero transfers control out of the loop.")
     ]
   },
   {
-    id:"JOB-611", topic:"flags", priority:"Normal", pay:47,
-    symptom:"A later branch needs condition flags set from comparing two registers, but no result should be stored.",
-    instruction:"CMP R2, R5",
-    description:"Compare R2 and R5 and update condition flags.",
-    stages:[
-      stage("Fetch","What happens first for CMP?",["Compare R2 and R5 now.","Fetch the CMP instruction using the program counter.","Clear every condition flag."],1,"CMP still begins with a normal instruction fetch."),
-      stage("Decode","What does Decode identify?",["CMP uses R2 and R5 to update flags without storing an arithmetic result.","The final Zero flag value before comparing.","A memory write destination."],0,"Decode identifies the compare operation and its register operands."),
-      stage("Execute","What completes CMP?",["Use the ALU to compare R2 and R5 and update condition flags.","Copy R2 into R5.","Fetch CMP a second time."],0,"Execute performs the comparison and updates status flags such as Zero or Negative.")
+    id: "REG-603", tier: "main", topic: "registers", priority: "Normal", pay: 30,
+    symptom: "The calculation is correct in one register, but the next instruction reads a different register and gets the wrong answer.",
+    instruction: "The result is stored in the wrong x86 register for the next operation.",
+    description: "Trace the source and destination registers, move the result correctly, and verify the handoff.",
+    stages: [
+      step("Trace registers", "Follow the value", "If the next instruction expects the result in RAX, what must be true?", ["The result must be placed in RAX before it is used", "The result can stay in any random register", "RAX must always contain zero"], 0, "Register-based code depends on values being in the exact registers expected by later instructions."),
+      step("Repair move", "Fix destination", "The result is currently in RBX but the next step reads RAX. What repair is appropriate?", ["MOV RAX, RBX", "MOV RBX, RAX if RBX must stay unchanged", "JMP RBX"], 0, "Moving the value from RBX into RAX places it where the next instruction expects it."),
+      step("Verify handoff", "Check the next use", "What should be checked immediately after the move?", ["That the next instruction reads the intended result from RAX", "That every register has the same value", "That memory is never accessed"], 0, "Verification should confirm the consumer instruction sees the correct register value.")
     ]
   },
   {
-    id:"JOB-645", topic:"flags", priority:"High", pay:51,
-    symptom:"A register value must be tested against zero so the CPU can update status flags for a later decision.",
-    instruction:"CMP R9, #0",
-    description:"Compare R9 with zero and update condition flags.",
-    stages:[
-      stage("Fetch","What should happen first?",["Fetch the CMP-immediate instruction from memory.","Set the Zero flag immediately.","Branch if R9 is zero."],0,"The comparison cannot occur until the encoded instruction is fetched."),
-      stage("Decode","What is determined during Decode?",["CMP uses R9 and the immediate value 0 to update flags.","The branch target address.","A destination register for the result."],0,"Decode identifies the compare operation and immediate operand."),
-      stage("Execute","What should Execute do?",["Compare R9 with 0 in the ALU and update condition flags.","Store 0 into R9.","Fetch the next instruction twice."],0,"Execute performs the comparison and changes the status flags.")
+    id: "REG-619", tier: "main", topic: "registers", priority: "High", pay: 37,
+    symptom: "The loop counter changes correctly, but the branch checks a different register so the loop behaves randomly.",
+    instruction: "The update and the branch are using different registers.",
+    description: "Identify the counter register, align the branch operand, and verify the loop.",
+    stages: [
+      step("Find counter", "Identify the owner", "If DEC RCX updates the loop counter, which register contains the new counter value?", ["RAX", "RCX", "RDX"], 1, "DEC RCX modifies RCX, so that is the register the branch logic should evaluate."),
+      step("Repair check", "Use same register", "What is the cleanest repair if the branch currently compares RDX to zero?", ["Compare RCX to zero instead", "Increment RDX forever", "Move the stack pointer"], 0, "The branch should test the same register that the loop updates."),
+      step("Verify loop", "Confirm consistency", "What should the technician verify?", ["Each decrement of RCX affects the branch decision", "The branch ignores RCX", "RCX never changes"], 0, "A correct loop uses a consistent counter register from update through branch decision.")
+    ]
+  },
+
+  {
+    id: "OT-701", tier: "overtime", topic: "endian", priority: "Overtime", pay: 48,
+    symptom: "A four-byte value looks completely reversed when I inspect the raw memory on this machine.",
+    instruction: "The bytes are being interpreted with the wrong endianness.",
+    description: "Identify byte order, reconstruct the value, and verify the representation.",
+    stages: [
+      step("Inspect bytes", "Read memory order", "On a little-endian machine, which byte of 0x12345678 appears at the lowest address?", ["0x12", "0x34", "0x78"], 2, "Little-endian stores the least significant byte at the lowest memory address."),
+      step("Rebuild value", "Apply byte order", "Memory shows 78 56 34 12 from low to high addresses. What 32-bit value is represented?", ["0x78563412", "0x12345678", "0x34127856"], 1, "Reading little-endian byte order reconstructs the value as 0x12345678."),
+      step("Verify format", "Match both ends", "What must both systems agree on when exchanging raw multi-byte values?", ["Byte order or a defined conversion", "CPU clock speed", "Register count"], 0, "Consistent byte order or explicit conversion prevents reversed multi-byte values.")
     ]
   },
   {
-    id:"JOB-708", topic:"stack", priority:"Normal", pay:49,
-    symptom:"A register value must be saved temporarily before another routine uses the register.",
-    instruction:"PUSH R3",
-    description:"Push the value in R3 onto the stack.",
-    stages:[
-      stage("Fetch","How does PUSH begin?",["Write R3 to the stack immediately.","Fetch the PUSH instruction from memory.","Pop the old stack value."],1,"PUSH must first be fetched like every other instruction."),
-      stage("Decode","What should Decode identify?",["PUSH needs source register R3 and the stack pointer.","The return address of a future CALL.","A branch target."],0,"Decode identifies the stack operation and the register involved."),
-      stage("Execute","What completes PUSH?",["Adjust the stack pointer and store R3 at the new stack location.","Fetch PUSH again.","Move R3 into the program counter."],0,"Execute updates the stack pointer and writes the value to stack memory.")
+    id: "OT-718", tier: "overtime", topic: "endian", priority: "Overtime", pay: 52,
+    symptom: "Numbers sent over the network arrive with their bytes swapped on one machine.",
+    instruction: "Host byte order is being sent without converting to the agreed network order.",
+    description: "Identify the byte-order boundary, convert the value, and verify both endpoints.",
+    stages: [
+      step("Find boundary", "Locate conversion", "Where should byte-order conversion happen?", ["When serializing/deserializing the multi-byte value", "Only when printing text", "Inside the keyboard driver"], 0, "The conversion belongs where host data crosses into a defined external byte order."),
+      step("Repair transfer", "Normalize order", "What is the goal of a host-to-network conversion?", ["Put multi-byte values into the agreed network byte order", "Compress every integer", "Turn all bytes into ASCII"], 0, "Normalization ensures different host architectures interpret the transmitted bytes consistently."),
+      step("Verify endpoints", "Round-trip test", "What is the best verification?", ["Send a known multi-byte value and confirm both endpoints reconstruct it identically", "Check only one byte", "Ignore values larger than 255"], 0, "A known round-trip value exposes any remaining byte-order mismatch.")
     ]
   },
   {
-    id:"JOB-736", topic:"stack", priority:"High", pay:55,
-    symptom:"A previously saved value needs to be restored from the stack into a register.",
-    instruction:"POP R3",
-    description:"Pop the top stack value into R3.",
-    stages:[
-      stage("Fetch","What happens first for POP?",["Read stack data into R3 immediately.","Fetch the POP instruction using the program counter.","Increment the stack pointer twice."],1,"The processor first fetches the POP instruction."),
-      stage("Decode","What information does Decode establish?",["POP will use the stack pointer and destination register R3.","The exact stack value before reading memory.","A branch target."],0,"Decode identifies the stack operation and destination register."),
-      stage("Execute","What action completes POP?",["Read the top stack value into R3 and adjust the stack pointer.","Fetch POP again.","Write R3 back onto the stack."],0,"Execute performs the stack memory read and restores the register.")
+    id: "OT-803", tier: "overtime", topic: "threads", priority: "Overtime", pay: 55,
+    symptom: "Four threads increment the same counter, but the final total is sometimes smaller than expected.",
+    instruction: "Concurrent read-modify-write operations are racing.",
+    description: "Identify the critical section, protect the shared update, and verify repeatability.",
+    stages: [
+      step("Find race", "Locate shared state", "Which operation is unsafe when multiple threads perform it on the same counter without synchronization?", ["counter++", "Reading a constant string", "Creating separate local variables"], 0, "counter++ is a read-modify-write sequence that can lose updates when operations overlap."),
+      step("Repair critical section", "Synchronize update", "Which repair can protect the shared increment?", ["Use a mutex/lock or an atomic increment", "Add more threads", "Make the counter a float"], 0, "Synchronization makes the shared update atomic with respect to competing threads."),
+      step("Verify repeatability", "Stress the fix", "What should repeated test runs show?", ["The expected final count every time", "A different count every run", "Only one thread ever runs"], 0, "A properly synchronized update should produce a stable correct total.")
+    ]
+  },
+  {
+    id: "OT-821", tier: "overtime", topic: "threads", priority: "Overtime", pay: 60,
+    symptom: "Two worker threads freeze forever: each one is waiting for a lock held by the other.",
+    instruction: "The threads have entered a deadlock.",
+    description: "Recognize circular lock waiting, choose a consistent lock order, and verify progress.",
+    stages: [
+      step("Diagnose wait", "Trace locks", "What pattern describes two threads each holding one lock while waiting for the other's lock?", ["Deadlock", "Cache hit", "Floating-point overflow"], 0, "Circular waiting on locks is a classic deadlock condition."),
+      step("Repair order", "Break the cycle", "Which strategy helps prevent this deadlock?", ["Acquire shared locks in one consistent global order", "Randomize lock order every time", "Hold every lock forever"], 0, "Consistent lock ordering prevents the circular wait from forming."),
+      step("Verify progress", "Run contention test", "What should a stress test confirm?", ["Both threads continue making progress without freezing", "Only one thread can ever start", "The locks are never released"], 0, "The repair is successful when contention no longer produces circular waiting.")
+    ]
+  },
+  {
+    id: "OT-906", tier: "overtime", topic: "parallel", priority: "Overtime", pay: 50,
+    symptom: "I moved a tiny one-step task to the GPU and somehow made it slower instead of faster.",
+    instruction: "Parallel overhead is larger than the useful work.",
+    description: "Estimate parallel work, account for transfer/launch overhead, and choose the right processor.",
+    stages: [
+      step("Inspect workload", "Measure parallel work", "Which workload is most likely to benefit from a GPU?", ["Thousands of independent similar operations", "One tiny serial operation", "A single branch with no data"], 0, "GPUs excel when many similar operations can run in parallel."),
+      step("Account overhead", "Include transfer cost", "Why can a tiny GPU job be slower?", ["Launch and data-transfer overhead can dominate", "GPUs cannot do arithmetic", "The CPU has no registers"], 0, "For small workloads, setup and transfer costs can exceed the time saved by parallel execution."),
+      step("Choose device", "Match hardware", "What is the best repair for this tiny serial task?", ["Keep it on the CPU", "Force more GPU threads regardless of work", "Convert the task to floating point"], 0, "A CPU is often the better choice when the job is too small or too serial to amortize GPU overhead.")
+    ]
+  },
+  {
+    id: "OT-919", tier: "overtime", topic: "parallel", priority: "Overtime", pay: 58,
+    symptom: "We split a calculation across many workers, but every step needs the result from the step before it.",
+    instruction: "The workload has a strong serial dependency.",
+    description: "Find the dependency chain, isolate parallel sections, and verify useful concurrency.",
+    stages: [
+      step("Trace dependency", "Find serial work", "If step B cannot start until step A finishes, what does that indicate?", ["A dependency that limits parallelism", "A cache hit", "A pointer alias is impossible"], 0, "Dependent steps cannot execute simultaneously without changing the algorithm."),
+      step("Repair schedule", "Parallelize safe work", "What is the right strategy?", ["Parallelize only independent portions and keep dependent steps ordered", "Run dependent steps in random order", "Duplicate every result"], 0, "Correct parallelization respects data dependencies while exploiting independent work."),
+      step("Verify speedup", "Measure real gain", "What should be measured after the change?", ["Whether independent work overlaps and total runtime improves", "Only the number of threads created", "Only CPU clock frequency"], 0, "Useful parallelism is demonstrated by correct overlapping work and a measurable runtime improvement.")
+    ]
+  },
+  {
+    id: "OT-1002", tier: "overtime", topic: "hierarchy", priority: "Overtime", pay: 53,
+    symptom: "Walking through an array in order is fast, but jumping around randomly through the same data is much slower.",
+    instruction: "The random access pattern has poor cache locality.",
+    description: "Identify locality, choose a cache-friendly access pattern, and verify hit behavior.",
+    stages: [
+      step("Inspect locality", "Compare access patterns", "Why is sequential array access often faster?", ["Nearby data is likely to arrive in the same cache line", "RAM becomes faster when addresses increase", "Sequential code disables the cache"], 0, "Spatial locality lets one cache-line fetch serve multiple nearby accesses."),
+      step("Repair pattern", "Improve locality", "Which change is most likely to help?", ["Process nearby elements together", "Randomize every index", "Flush the cache after each read"], 0, "Grouping nearby accesses improves the chance that needed data is already in cache."),
+      step("Verify cache", "Measure behavior", "What result supports the diagnosis?", ["Fewer costly misses and faster repeated access", "More random jumps", "A lower source-code line count"], 0, "Improved cache behavior should reduce expensive misses and improve observed runtime.")
+    ]
+  },
+  {
+    id: "OT-1025", tier: "overtime", topic: "hierarchy", priority: "Overtime", pay: 57,
+    symptom: "A program repeatedly scans a data set that is much larger than the cache and keeps stalling on memory.",
+    instruction: "The working set is overflowing the useful cache capacity.",
+    description: "Identify the working-set problem, improve blocking/locality, and verify memory stalls.",
+    stages: [
+      step("Inspect working set", "Compare size to cache", "What happens when the actively reused data is much larger than cache capacity?", ["Useful cache lines are evicted before reuse", "Every access becomes a guaranteed hit", "Registers move to disk"], 0, "A working set larger than cache capacity can cause frequent eviction and misses."),
+      step("Repair access", "Use blocking", "Which technique can improve locality for large data sets?", ["Process the data in smaller cache-friendly blocks", "Access every element in random order", "Disable all reuse"], 0, "Blocking keeps a smaller working subset hot in cache long enough to be reused."),
+      step("Verify stalls", "Measure improvement", "What should improve after effective blocking?", ["Cache hit behavior and memory-stall time", "The number of source comments", "The endianness of every integer"], 0, "Better locality should reduce memory stalls and improve cache effectiveness.")
     ]
   }
 ];

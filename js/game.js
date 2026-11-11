@@ -3,21 +3,39 @@ import { JOBS, TOPICS } from "./jobs.js";
 const MODES = {
   training: {
     label: "Training Shift",
+    pool: "main",
     jobs: 5,
-    seconds: 50,
-    diagnosisBonus: 6,
+    seconds: 55,
+    diagnosisBonus: 8,
     diagnosisPenalty: 6,
     repairPenalty: 4,
-    satisfactionPenalty: 6
+    satisfactionPenalty: 6,
+    payMultiplier: 1,
+    timeBonusCap: 12
   },
   rush: {
     label: "Rush Hour",
+    pool: "main",
     jobs: 7,
-    seconds: 32,
-    diagnosisBonus: 4,
+    seconds: 38,
+    diagnosisBonus: 5,
     diagnosisPenalty: 8,
     repairPenalty: 6,
-    satisfactionPenalty: 10
+    satisfactionPenalty: 10,
+    payMultiplier: 1.15,
+    timeBonusCap: 16
+  },
+  overtime: {
+    label: "Overtime",
+    pool: "overtime",
+    jobs: 5,
+    seconds: 36,
+    diagnosisBonus: 4,
+    diagnosisPenalty: 9,
+    repairPenalty: 7,
+    satisfactionPenalty: 11,
+    payMultiplier: 1.75,
+    timeBonusCap: 18
   }
 };
 
@@ -96,6 +114,10 @@ function currentStage() {
   return currentJob().stages[state.stageIndex];
 }
 
+function topicLabel(key) {
+  return TOPICS.find(topic => topic.key === key)?.label ?? key;
+}
+
 function shuffle(items) {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i -= 1) {
@@ -107,6 +129,11 @@ function shuffle(items) {
 
 function money(value) {
   return "$" + Math.max(0, Math.round(value));
+}
+
+function potentialPay(job = currentJob()) {
+  if (!job) return 0;
+  return Math.round(job.pay * mode().payMultiplier);
 }
 
 function animate(node, className) {
@@ -181,29 +208,45 @@ function updateHud() {
   el.satisfactionText.textContent = state.satisfaction + "%";
   el.satisfactionBar.style.width = state.satisfaction + "%";
   el.modeLabel.textContent = mode().label;
-  el.rewardLabel.textContent = money(currentJob()?.pay ?? 0);
+  el.rewardLabel.textContent = money(potentialPay());
 }
 
 function renderTicket() {
   const job = currentJob();
+
   el.ticketId.textContent = job.id;
   el.ticketType.textContent = state.phase === "diagnosis"
     ? "UNDIAGNOSED"
-    : TOPICS.find(topic => topic.key === job.topic)?.label.toUpperCase() ?? job.topic.toUpperCase();
+    : topicLabel(job.topic).toUpperCase();
   el.ticketSymptom.textContent = job.symptom;
   el.instruction.textContent = state.phase === "diagnosis" ? "Hidden until diagnosis" : job.instruction;
   el.ticketDescription.textContent = state.phase === "diagnosis"
-    ? "Use the customer report to identify the CPU topic before opening the repair procedure."
+    ? "Use the customer's symptoms to identify the Computer Organization topic before opening the repair procedure."
     : job.description;
   el.priority.textContent = job.priority;
-  el.rewardLabel.textContent = money(job.pay);
+  el.rewardLabel.textContent = money(potentialPay(job));
   animate(el.ticketPanel, "bump");
 }
 
+function setStationContent(station, marker, title, subtitle) {
+  station.querySelector("b").textContent = marker;
+  station.querySelector("strong").textContent = title;
+  station.querySelector("small").textContent = subtitle;
+}
+
 function renderPipeline() {
+  const job = currentJob();
   const activeIndex = state.phase === "diagnosis" ? 0 : state.stageIndex + 1;
 
   el.stations.forEach((station, index) => {
+    if (index === 0) {
+      setStationContent(station, "?", "Diagnose", "Identify the topic");
+    } else {
+      const stage = job.stages[index - 1];
+      const marker = stage.name.charAt(0).toUpperCase();
+      setStationContent(station, marker, stage.name, stage.short);
+    }
+
     station.classList.toggle("active", index === activeIndex);
     station.classList.toggle("complete", index < activeIndex);
   });
@@ -235,13 +278,16 @@ function renderDiagnosis() {
 
   const job = currentJob();
   const correctTopic = TOPICS.find(topic => topic.key === job.topic);
-  const distractors = shuffle(TOPICS.filter(topic => topic.key !== job.topic)).slice(0, 3);
+  const availableTopics = TOPICS.filter(topic => topic.tier === mode().pool && topic.key !== job.topic);
+  const distractors = shuffle(availableTopics).slice(0, 3);
   const choices = shuffle([correctTopic, ...distractors]);
 
   el.stationLabel.textContent = "DIAGNOSTIC TERMINAL";
-  el.stagePrompt.textContent = "What kind of CPU problem is this?";
+  el.stagePrompt.textContent = "What is actually causing this customer's problem?";
   el.stageBadge.textContent = "Diagnosis";
-  el.hintText.textContent = "Read the customer report and identify the Computer Organization topic that best matches the ticket.";
+  el.hintText.textContent = state.modeKey === "overtime"
+    ? "Overtime tickets use the advanced topic pool. Diagnose the underlying concept before the premium repair clock gets away from you."
+    : "Read the symptom, not the hidden technical answer. Choose the course topic that best explains the customer's complaint.";
 
   choices.forEach(topic => {
     addChoice(topic.label, topic.key === job.topic, resolveDiagnosis);
@@ -273,7 +319,7 @@ function resolveDiagnosis(option, clicked) {
     el.feedback.classList.remove("bad");
     el.feedbackIcon.textContent = "✓";
     el.feedbackTitle.textContent = "Diagnosis confirmed";
-    el.feedbackText.textContent = "+" + mode().diagnosisBonus + " seconds added to the repair clock. Open the ticket and start the repair.";
+    el.feedbackText.textContent = "+" + mode().diagnosisBonus + " seconds added. The technician finding and topic-specific repair are now unlocked.";
   } else {
     clicked.classList.add("wrong");
     state.ticketMistakes += 1;
@@ -281,11 +327,10 @@ function resolveDiagnosis(option, clicked) {
     state.timeRemaining = Math.max(1, state.timeRemaining - mode().diagnosisPenalty);
     state.satisfaction = Math.max(0, state.satisfaction - mode().satisfactionPenalty);
 
-    const label = TOPICS.find(topic => topic.key === currentJob().topic)?.label ?? currentJob().topic;
     el.feedback.classList.add("bad");
     el.feedbackIcon.textContent = "!";
     el.feedbackTitle.textContent = "Misdiagnosed";
-    el.feedbackText.textContent = "This is a " + label + " ticket. -" + mode().diagnosisPenalty + " seconds from the repair clock.";
+    el.feedbackText.textContent = "This is a " + topicLabel(currentJob().topic) + " ticket. -" + mode().diagnosisPenalty + " seconds from the repair clock.";
   }
 
   updateTimerDisplay();
@@ -302,12 +347,12 @@ function renderStage() {
   renderPipeline();
 
   const stage = currentStage();
-  const suffix = stage.name === "Fetch" ? " BENCH" : stage.name === "Decode" ? " DESK" : " BAY";
+  const totalStages = currentJob().stages.length;
 
-  el.stationLabel.textContent = stage.name.toUpperCase() + suffix;
+  el.stationLabel.textContent = stage.name.toUpperCase();
   el.stagePrompt.textContent = stage.prompt;
-  el.stageBadge.textContent = "Repair " + (state.stageIndex + 1) + " of 3";
-  el.hintText.textContent = "Choose the action that belongs at this CPU-cycle station. The ticket clock keeps running.";
+  el.stageBadge.textContent = "Repair " + (state.stageIndex + 1) + " of " + totalStages;
+  el.hintText.textContent = stage.hint || "Choose the action that best repairs or verifies this specific topic. The ticket clock keeps running.";
 
   const options = shuffle(stage.choices.map((text, index) => ({
     text,
@@ -366,8 +411,10 @@ function resolveRepairAnswer(option, clicked) {
 
 function continueLabel() {
   if (state.phase === "diagnosis") return "Open repair procedure";
-  if (state.stageIndex === 0) return "Move to Decode Desk";
-  if (state.stageIndex === 1) return "Move to Execute Bay";
+
+  const nextStage = currentJob().stages[state.stageIndex + 1];
+  if (nextStage) return "Move to " + nextStage.name;
+
   return "Close ticket & collect pay";
 }
 
@@ -375,9 +422,10 @@ function completeTicket() {
   stopTimer();
 
   const job = currentJob();
+  const basePay = potentialPay(job);
   const accuracyMultiplier = Math.max(0.35, 1 - state.ticketMistakes * 0.18);
-  const timeBonus = Math.min(12, Math.floor(state.timeRemaining / 5));
-  const payout = Math.max(5, Math.round(job.pay * accuracyMultiplier + timeBonus));
+  const timeBonus = Math.min(mode().timeBonusCap, Math.floor(state.timeRemaining / 5));
+  const payout = Math.max(5, Math.round(basePay * accuracyMultiplier + timeBonus));
 
   state.earnings += payout;
   state.phase = "payout";
@@ -388,7 +436,7 @@ function completeTicket() {
   el.feedbackIcon.textContent = "$";
   el.feedbackTitle.textContent = "Ticket paid " + money(payout);
   el.feedbackText.textContent = state.ticketMistakes === 0
-    ? "Clean repair. Full base pay plus a small speed bonus."
+    ? "Clean repair. Full shift-rate pay plus a speed bonus."
     : "The ticket was completed, but mistakes reduced the final payout.";
 
   el.continueBtn.hidden = false;
@@ -426,7 +474,7 @@ function advance() {
     return;
   }
 
-  if (state.stageIndex < 2) {
+  if (state.stageIndex < currentJob().stages.length - 1) {
     state.stageIndex += 1;
     renderStage();
     return;
@@ -447,11 +495,17 @@ function finishShift() {
   el.finalSatisfaction.textContent = state.satisfaction + "%";
   el.bestStreak.textContent = state.bestStreak;
 
-  el.finalSummary.textContent = accuracy >= 90
-    ? "Excellent shift. You diagnosed tickets quickly and handled the CPU repair cycle with very few mistakes."
-    : accuracy >= 70
-      ? "Solid shift. Your repairs are working; a few diagnosis or station decisions still need tightening."
-      : "Shift complete. Replay the shop and use the technician board to strengthen the topics that cost you time.";
+  if (state.modeKey === "overtime") {
+    el.finalSummary.textContent = accuracy >= 80
+      ? "Overtime cleared. You handled the advanced tickets and earned the premium shift rate."
+      : "Overtime complete. The premium tickets pay more, but the advanced topics punish weak diagnoses quickly.";
+  } else {
+    el.finalSummary.textContent = accuracy >= 90
+      ? "Excellent shift. You diagnosed the customer's symptoms and completed the topic-specific repairs with very few mistakes."
+      : accuracy >= 70
+        ? "Solid shift. Your repairs are working; a few diagnosis or repair decisions still need tightening."
+        : "Shift complete. Replay the shop and use the technician board to strengthen the topics that cost you time.";
+  }
 
   el.shiftComplete.hidden = false;
 }
@@ -460,7 +514,9 @@ function startShift(modeKey = state.modeKey) {
   stopTimer();
 
   state.modeKey = modeKey;
-  state.jobs = shuffle(JOBS).slice(0, mode().jobs);
+
+  const pool = JOBS.filter(job => job.tier === mode().pool);
+  state.jobs = shuffle(pool).slice(0, mode().jobs);
   state.jobIndex = 0;
   state.phase = "diagnosis";
   state.stageIndex = 0;
@@ -495,7 +551,8 @@ el.modeButtons.forEach(button => {
   button.addEventListener("click", () => startShift(button.dataset.mode));
 });
 
-state.jobs = [JOBS[0]];
-updateHud();
+state.jobs = [JOBS.find(job => job.tier === "main")];
 state.timeRemaining = mode().seconds;
+updateHud();
 updateTimerDisplay();
+renderPipeline();

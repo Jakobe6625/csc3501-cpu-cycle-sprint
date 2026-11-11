@@ -3,9 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="CPU Cycle Shop - diagnose and repair CPU instruction tickets while learning computer organization.">
+  <meta name="description" content="CPU Cycle Shop - diagnose and repair Computer Organization tickets while learning CSC 3501 topics.">
   <title>CPU Cycle Shop</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/rebuild-v2.css">
 </head>
 <body>
   <main class="app-shell">
@@ -13,7 +14,7 @@
       <div>
         <p class="eyebrow">CSC 3501 • Game-Based Learning Project</p>
         <h1>CPU Cycle Shop</h1>
-        <p class="subtitle">Clock in, diagnose incoming CPU tickets, repair them through the instruction cycle, and earn your shift pay.</p>
+        <p class="subtitle">Clock in, diagnose customer symptoms, repair real Computer Organization problems, and earn your shift pay.</p>
       </div>
       <div class="open-badge"><span></span><div><small>SHOP STATUS</small><strong>OPEN</strong></div></div>
     </header>
@@ -44,10 +45,10 @@
         <div class="ticket">
           <div class="ticket-meta-top"><span id="ticketId">JOB-001</span><span id="ticketType">UNDIAGNOSED</span></div>
           <p class="ticket-kicker">Customer report</p>
-          <p id="ticketSymptom" class="symptom">A CPU task is waiting to be diagnosed.</p>
-          <p class="ticket-kicker">Repair instruction</p>
+          <p id="ticketSymptom" class="symptom">A customer problem is waiting to be diagnosed.</p>
+          <p class="ticket-kicker">Technician finding</p>
           <h2 id="instruction">Hidden until diagnosis</h2>
-          <p id="ticketDescription">Identify the topic first, then process the instruction through the repair benches.</p>
+          <p id="ticketDescription">Identify the topic first, then complete the repair procedure.</p>
           <div class="ticket-bottom">
             <div><small>Priority</small><strong id="priority">Normal</strong></div>
             <div><small>Potential pay</small><strong id="rewardLabel">$0</strong></div>
@@ -66,25 +67,25 @@
         </div>
 
         <div class="pipeline">
-          <div class="station active" data-step="0"><b>D</b><div><strong>Diagnose</strong><small>Identify the topic</small></div></div>
+          <div class="station active" data-step="0"><b>?</b><div><strong>Diagnose</strong><small>Identify the topic</small></div></div>
           <span>→</span>
-          <div class="station" data-step="1"><b>F</b><div><strong>Fetch Bench</strong><small>Retrieve instruction</small></div></div>
+          <div class="station" data-step="1"><b>1</b><div><strong>Inspect</strong><small>Trace the problem</small></div></div>
           <span>→</span>
-          <div class="station" data-step="2"><b>D</b><div><strong>Decode Desk</strong><small>Interpret instruction</small></div></div>
+          <div class="station" data-step="2"><b>2</b><div><strong>Repair</strong><small>Apply the fix</small></div></div>
           <span>→</span>
-          <div class="station" data-step="3"><b>E</b><div><strong>Execute Bay</strong><small>Perform operation</small></div></div>
+          <div class="station" data-step="3"><b>3</b><div><strong>Verify</strong><small>Confirm the result</small></div></div>
         </div>
 
         <article class="console">
           <div class="console-top">
             <div>
               <p id="stationLabel" class="console-label">DIAGNOSTIC TERMINAL</p>
-              <h2 id="stagePrompt">What kind of CPU problem is this?</h2>
+              <h2 id="stagePrompt">What is actually causing this customer's problem?</h2>
             </div>
             <span id="stageBadge">Diagnosis</span>
           </div>
 
-          <p id="hintText" class="hint">Read the service report and choose the Computer Organization topic that best matches the ticket.</p>
+          <p id="hintText" class="hint">Read the service report and choose the Computer Organization topic that best explains the symptom.</p>
           <div id="options" class="choices" role="group" aria-label="Answer choices"></div>
 
           <div id="feedback" class="feedback" aria-live="polite" hidden>
@@ -98,12 +99,12 @@
 
       <aside class="panel manual">
         <p class="panel-label">TECHNICIAN BOARD</p>
-        <h2>Repair reference</h2>
-        <div class="manual-item diagnose"><b>?</b><div><strong>Diagnose</strong><p>Classify the ticket: ALU, logic, memory, registers, control flow, flags, or stack.</p></div></div>
-        <div class="manual-item"><b class="fetch">F</b><div><strong>Fetch</strong><p>Use the program counter to retrieve the next instruction from memory.</p></div></div>
-        <div class="manual-item"><b class="decode">D</b><div><strong>Decode</strong><p>Interpret the opcode and identify operands, addresses, or resources.</p></div></div>
-        <div class="manual-item"><b class="execute">E</b><div><strong>Execute</strong><p>Carry out the arithmetic, logic, memory, stack, or control-flow operation.</p></div></div>
-        <div class="manual-note"><strong>Shop rule</strong><p>Ticket order and answer positions shuffle every shift. Rush Hour also gives you less time and harsher penalties.</p></div>
+        <h2>Shift reference</h2>
+        <div class="manual-item diagnose"><b>?</b><div><strong>Diagnose first</strong><p>The customer gives you symptoms, not the answer. Correct diagnoses buy extra repair time.</p></div></div>
+        <div class="manual-item"><b class="fetch">M</b><div><strong>Main shift pool</strong><p>Pointers, two's complement, IEEE 754, Boolean logic, branching, and x86 registers.</p></div></div>
+        <div class="manual-item"><b class="decode">OT</b><div><strong>Overtime pool</strong><p>Endianness, multithreading, GPU/parallelism, and memory hierarchy/cache.</p></div></div>
+        <div class="manual-item"><b class="execute">$</b><div><strong>Get paid</strong><p>Clean repairs earn the strongest payout. Mistakes cost time, satisfaction, and part of the ticket pay.</p></div></div>
+        <div class="manual-note"><strong>Shop rule</strong><p>Ticket order and answer positions shuffle every shift. Overtime pays a premium because the advanced tickets are less forgiving.</p></div>
       </aside>
     </section>
 
@@ -111,17 +112,22 @@
       <div class="modal-card mode-card">
         <p class="eyebrow">CLOCK IN</p>
         <h2>Choose your shift</h2>
-        <p>Every ticket starts with a diagnosis, then moves through Fetch, Decode, and Execute. The ticket clock keeps running through the whole repair.</p>
+        <p>Every ticket begins with a customer complaint. Diagnose the underlying class topic, then complete three repair steps built around that topic.</p>
         <div class="mode-options">
           <button class="mode-option" data-mode="training" type="button">
             <span class="mode-icon">T</span>
             <strong>Training Shift</strong>
-            <small>5 tickets • 50 sec each • +6 sec correct diagnosis • forgiving penalties</small>
+            <small>5 random main-pool tickets • 55 sec each • +8 sec correct diagnosis</small>
           </button>
           <button class="mode-option rush" data-mode="rush" type="button">
             <span class="mode-icon">R</span>
             <strong>Rush Hour</strong>
-            <small>7 tickets • 32 sec each • +4 sec correct diagnosis • tougher penalties</small>
+            <small>7 random main-pool tickets • 38 sec each • 1.15× base pay</small>
+          </button>
+          <button class="mode-option overtime" data-mode="overtime" type="button">
+            <span class="mode-icon">OT</span>
+            <strong>Overtime</strong>
+            <small>5 advanced tickets • 36 sec each • 1.75× base pay • tougher penalties</small>
           </button>
         </div>
       </div>
