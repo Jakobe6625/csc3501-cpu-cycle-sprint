@@ -58,5 +58,45 @@ export const JOBS = [
       {name:"Decode", prompt:"What should happen during Decode?", choices:["Interpret SUB and identify R8 and R3 as operands, with R8 as the destination.","Perform the subtraction in the ALU.","Retrieve the instruction bits from memory."], correct:0, explanation:"Decode determines the operation and which registers the instruction refers to."},
       {name:"Execute", prompt:"What completes the SUB instruction?", choices:["Read another instruction from memory.","Use the ALU to subtract R3 from R8 and write the result back to R8.","Interpret the opcode field."], correct:1, explanation:"Execute performs the subtraction and stores the result."}
     ]
+  },
+  {
+    id: "JOB-742", type: "LOGIC", priority: "Normal",
+    instruction: "OR R2, R9 → R10",
+    description: "Perform a bitwise OR on R2 and R9, storing the result in R10.",
+    stages: [
+      {name:"Fetch", prompt:"What should happen first for this OR instruction?", choices:["Read the OR instruction from memory using the program counter.","Perform the OR operation in the ALU.","Identify R2 and R9 as the source registers."], correct:0, explanation:"Fetch brings the encoded OR instruction into the processor before any interpretation or calculation."},
+      {name:"Decode", prompt:"What belongs in Decode for OR?", choices:["Write the OR result into R10.","Interpret the OR opcode and identify R2, R9, and R10.","Read the next instruction from memory."], correct:1, explanation:"Decode identifies the logical operation and the registers involved."},
+      {name:"Execute", prompt:"What completes the OR instruction?", choices:["Use the ALU to perform bitwise OR and write the result to R10.","Move the instruction into the instruction register.","Interpret the opcode field."], correct:0, explanation:"Execute performs the requested logical operation."}
+    ]
+  },
+  {
+    id: "JOB-815", type: "DATA MOVE", priority: "Normal",
+    instruction: "MOV R6 → R1",
+    description: "Copy the value in R6 into register R1.",
+    stages: [
+      {name:"Fetch", prompt:"What is the Fetch action for MOV?", choices:["Copy R6 into R1.","Retrieve the MOV instruction from memory using the program counter.","Determine which register is the destination."], correct:1, explanation:"Fetch retrieves the MOV instruction before the processor knows what transfer is requested."},
+      {name:"Decode", prompt:"What should Decode determine?", choices:["That MOV copies from R6 to R1.","The final copied value after the transfer.","The next instruction address after execution."], correct:0, explanation:"Decode identifies the MOV operation, its source register, and its destination register."},
+      {name:"Execute", prompt:"What belongs in Execute?", choices:["Copy the value from R6 into R1.","Fetch the MOV instruction again.","Interpret the MOV opcode."], correct:0, explanation:"Execute performs the requested data transfer."}
+    ]
+  },
+  {
+    id: "JOB-904", type: "CONTROL", priority: "High",
+    instruction: "BEQ R3, R4, DONE",
+    description: "Branch to DONE if R3 and R4 contain equal values.",
+    stages: [
+      {name:"Fetch", prompt:"How does BEQ begin?", choices:["Compare R3 and R4 immediately.","Read the BEQ instruction from memory using the program counter.","Jump to DONE before decoding."], correct:1, explanation:"Every instruction, including branches, first has to be fetched."},
+      {name:"Decode", prompt:"What information is identified during Decode?", choices:["That BEQ compares R3 and R4 and may branch to DONE.","Whether R3 and R4 are already equal.","The final branch decision and program-counter value."], correct:0, explanation:"Decode identifies the branch condition, operands, and target."},
+      {name:"Execute", prompt:"What should happen during Execute?", choices:["Compare R3 and R4 and update the program counter to DONE if they are equal.","Read BEQ from memory.","Interpret the register fields."], correct:0, explanation:"Execute performs the comparison and applies the control-flow decision."}
+    ]
+  },
+  {
+    id: "JOB-988", type: "LOGIC", priority: "High",
+    instruction: "XOR R7, R8 → R5",
+    description: "Perform a bitwise XOR on R7 and R8, storing the result in R5.",
+    stages: [
+      {name:"Fetch", prompt:"What belongs at Fetch for XOR?", choices:["Read the XOR instruction from memory at the current program-counter address.","Perform XOR in the ALU.","Choose R5 as the destination register."], correct:0, explanation:"Fetch retrieves the instruction itself from memory."},
+      {name:"Decode", prompt:"What does Decode do for XOR?", choices:["Interpret XOR and identify R7, R8, and R5.","Calculate the XOR result.","Retrieve the instruction from memory."], correct:0, explanation:"Decode identifies the operation and its register operands."},
+      {name:"Execute", prompt:"What completes this XOR ticket?", choices:["Interpret the opcode.","Use the ALU to XOR R7 and R8 and write the result to R5.","Fetch the next instruction."], correct:1, explanation:"Execute performs the actual XOR calculation and writes the result."}
+    ]
   }
 ];
