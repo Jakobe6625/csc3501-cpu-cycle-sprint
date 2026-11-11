@@ -22,10 +22,17 @@
       <article><span>Ticket</span><strong><b id="jobNumber">1</b>/<b id="jobTotal">5</b></strong></article>
       <article><span>Score</span><strong id="score">0</strong></article>
       <article><span>Streak</span><strong id="streak">0</strong></article>
+      <article><span>Timer</span><strong id="timer">—</strong></article>
       <article class="satisfaction">
         <div><span>Customer satisfaction</span><strong id="satisfactionText">100%</strong></div>
         <div class="meter"><i id="satisfactionBar"></i></div>
       </article>
+    </section>
+
+    <section class="mode-strip">
+      <span>Current shift:</span>
+      <strong id="modeLabel">Training Shift</strong>
+      <button id="changeModeTop" class="text-btn" type="button">Change mode</button>
     </section>
 
     <section class="game-grid">
@@ -38,7 +45,7 @@
           <p id="ticketDescription">Add two register values and store the result.</p>
           <div class="ticket-bottom">
             <div><small>Priority</small><strong id="priority">Normal</strong></div>
-            <div><small>Full reward</small><strong>300 pts</strong></div>
+            <div><small>Base reward</small><strong id="rewardLabel">100 pts</strong></div>
           </div>
         </div>
         <div class="tip">
@@ -83,8 +90,28 @@
         <div class="manual-item"><b class="fetch">F</b><div><strong>Fetch</strong><p>Use the program counter to retrieve the next instruction from memory.</p></div></div>
         <div class="manual-item"><b class="decode">D</b><div><strong>Decode</strong><p>Interpret the opcode and identify the operands or resources the instruction needs.</p></div></div>
         <div class="manual-item"><b class="execute">E</b><div><strong>Execute</strong><p>Carry out the arithmetic, logic, memory, or control-flow operation.</p></div></div>
-        <div class="manual-note"><strong>Why this matters</strong><p>The choices are randomized across different instruction types so you cannot solve the game by memorizing an answer pattern.</p></div>
+        <div class="manual-note"><strong>Why this matters</strong><p>Tickets and answer positions change each shift, so the player has to reason about the CPU cycle instead of memorizing a pattern.</p></div>
       </aside>
+    </section>
+
+    <section id="startScreen" class="modal">
+      <div class="modal-card mode-card">
+        <p class="eyebrow">CHOOSE YOUR SHIFT</p>
+        <h2>Clock in at CPU Cycle Shop</h2>
+        <p>Pick a mode. Both use the same CPU concepts, but Rush Hour adds time pressure and tougher penalties.</p>
+        <div class="mode-options">
+          <button class="mode-option" data-mode="training" type="button">
+            <span class="mode-icon">T</span>
+            <strong>Training Shift</strong>
+            <small>5 tickets • No timer • Standard scoring</small>
+          </button>
+          <button class="mode-option rush" data-mode="rush" type="button">
+            <span class="mode-icon">R</span>
+            <strong>Rush Hour</strong>
+            <small>7 tickets • 12 seconds per stage • Time bonus</small>
+          </button>
+        </div>
+      </div>
     </section>
 
     <section id="shiftComplete" class="modal" hidden>
@@ -94,10 +121,14 @@
         <p id="finalSummary"></p>
         <div class="final-stats">
           <div><span>Final score</span><strong id="finalScore">0</strong></div>
+          <div><span>Accuracy</span><strong id="finalAccuracy">0%</strong></div>
           <div><span>Satisfaction</span><strong id="finalSatisfaction">100%</strong></div>
           <div><span>Best streak</span><strong id="bestStreak">0</strong></div>
         </div>
-        <button id="restartBtn" class="primary">Start another shift</button>
+        <div class="end-actions">
+          <button id="restartBtn" class="primary">Replay this mode</button>
+          <button id="changeModeBtn" class="secondary-btn">Change mode</button>
+        </div>
       </div>
     </section>
   </main>
