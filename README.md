@@ -76,6 +76,7 @@ The Overtime pool currently contains 8 tickets.
 - Customer satisfaction
 - Repair streaks
 - Accuracy tracking
+- End-of-shift review: score by topic and every missed question with its explanation
 - Training, Rush Hour, and Overtime modes
 - Responsive shop-style interface
 
@@ -86,6 +87,7 @@ The Overtime pool currently contains 8 tickets.
 - css/rebuild-v2.css — v2 layout and Overtime overrides
 - js/jobs.js — topic definitions, ticket scenarios, and repair content
 - js/game.js — modes, timer, diagnosis, payouts, progression, and rendering
+- scripts/check-jobs.mjs — content checker for js/jobs.js (run `npm run check`; also runs in GitHub Actions on every PR)
 
 ## Deployment
 

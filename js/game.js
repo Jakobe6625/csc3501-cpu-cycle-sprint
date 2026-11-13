@@ -54,7 +54,8 @@ const state = {
   resolvedAnswers: 0,
   timeRemaining: 0,
   ticketMistakes: 0,
-  ticketExpired: false
+  ticketExpired: false,
+  log: []
 };
 
 let timerId = null;
@@ -93,6 +94,10 @@ const el = {
   finalAccuracy: document.getElementById("finalAccuracy"),
   finalSatisfaction: document.getElementById("finalSatisfaction"),
   bestStreak: document.getElementById("bestStreak"),
+  topicBreakdown: document.getElementById("topicBreakdown"),
+  missedCount: document.getElementById("missedCount"),
+  missedList: document.getElementById("missedList"),
+  review: document.getElementById("missedReview"),
   restartBtn: document.getElementById("restartBtn"),
   changeModeBtn: document.getElementById("changeModeBtn"),
   changeModeTop: document.getElementById("changeModeTop"),
@@ -160,10 +165,10 @@ function updateTimerDisplay() {
   });
 }
 
-function startTicketTimer() {
+// Resumes the ticket clock without resetting it. The clock only runs while a
+// question is waiting for an answer; it is paused while feedback is shown.
+function runTimer() {
   stopTimer();
-  state.timeRemaining = mode().seconds;
-  updateTimerDisplay();
 
   timerId = setInterval(() => {
     state.timeRemaining -= 1;
@@ -178,10 +183,55 @@ function startTicketTimer() {
   }, 1000);
 }
 
+// Resets the clock for a brand-new ticket and starts it.
+function startTicketTimer() {
+  state.timeRemaining = mode().seconds;
+  updateTimerDisplay();
+  runTimer();
+}
+
+function isShiftActive() {
+  return el.startScreen.hidden && el.shiftComplete.hidden;
+}
+
+// Records one answered (or timed-out) question for the end-of-shift review.
+function logAnswer({ prompt, chosen, answer, explanation, correct }) {
+  state.log.push({
+    topic: currentJob().topic,
+    jobId: currentJob().id,
+    prompt,
+    chosen,
+    answer,
+    explanation,
+    correct
+  });
+}
+
 function handleTicketExpired() {
   if (state.answered) return;
 
+  const job = currentJob();
+  if (state.phase === "diagnosis") {
+    logAnswer({
+      prompt: "Diagnose: " + job.symptom,
+      chosen: "(ran out of time)",
+      answer: topicLabel(job.topic),
+      explanation: job.instruction,
+      correct: false
+    });
+  } else {
+    const stage = currentStage();
+    logAnswer({
+      prompt: stage.prompt,
+      chosen: "(ran out of time)",
+      answer: stage.choices[stage.correct],
+      explanation: stage.explanation,
+      correct: false
+    });
+  }
+
   state.answered = true;
+  state.resolvedAnswers += 1;
   state.ticketMistakes += 2;
   state.streak = 0;
   state.satisfaction = Math.max(0, state.satisfaction - mode().satisfactionPenalty * 2);
@@ -301,9 +351,19 @@ function resolveDiagnosis(option, clicked) {
 
   state.answered = true;
   state.resolvedAnswers += 1;
+  stopTimer();
 
   const correct = option.isCorrect;
   const buttons = [...el.options.querySelectorAll(".choice")];
+  const job = currentJob();
+
+  logAnswer({
+    prompt: "Diagnose: " + job.symptom,
+    chosen: option.text,
+    answer: topicLabel(job.topic),
+    explanation: job.instruction,
+    correct
+  });
 
   buttons.forEach(button => {
     button.disabled = true;
@@ -371,9 +431,18 @@ function resolveRepairAnswer(option, clicked) {
 
   state.answered = true;
   state.resolvedAnswers += 1;
+  stopTimer();
 
   const stage = currentStage();
   const buttons = [...el.options.querySelectorAll(".choice")];
+
+  logAnswer({
+    prompt: stage.prompt,
+    chosen: option.text,
+    answer: stage.choices[stage.correct],
+    explanation: stage.explanation,
+    correct: option.isCorrect
+  });
 
   buttons.forEach(button => {
     button.disabled = true;
@@ -471,12 +540,14 @@ function advance() {
   if (state.phase === "diagnosis") {
     state.stageIndex = 0;
     renderStage();
+    runTimer();
     return;
   }
 
   if (state.stageIndex < currentJob().stages.length - 1) {
     state.stageIndex += 1;
     renderStage();
+    runTimer();
     return;
   }
 
@@ -507,7 +578,53 @@ function finishShift() {
         : "Shift complete. Replay the shop and use the technician board to strengthen the topics that cost you time.";
   }
 
+  renderReview();
   el.shiftComplete.hidden = false;
+}
+
+// End-of-shift review: score per topic (weakest first) plus every missed
+// question with the correct answer and explanation.
+function renderReview() {
+  const byTopic = {};
+  for (const entry of state.log) {
+    const tally = (byTopic[entry.topic] ??= { right: 0, total: 0 });
+    tally.total += 1;
+    if (entry.correct) tally.right += 1;
+  }
+
+  el.topicBreakdown.replaceChildren(
+    ...Object.entries(byTopic)
+      .sort(([, a], [, b]) => a.right / a.total - b.right / b.total)
+      .map(([key, tally]) => {
+        const item = document.createElement("li");
+        const label = document.createElement("span");
+        const score = document.createElement("strong");
+        label.textContent = topicLabel(key);
+        score.textContent = tally.right + "/" + tally.total;
+        item.append(label, score);
+        if (tally.right < tally.total) item.classList.add("weak");
+        return item;
+      })
+  );
+
+  const missed = state.log.filter(entry => !entry.correct);
+  el.missedCount.textContent = missed.length;
+  el.review.hidden = missed.length === 0;
+  el.review.open = false;
+
+  el.missedList.replaceChildren(
+    ...missed.map(entry => {
+      const item = document.createElement("li");
+      const question = document.createElement("strong");
+      const answers = document.createElement("p");
+      const why = document.createElement("p");
+      question.textContent = entry.jobId + " — " + entry.prompt;
+      answers.textContent = "You picked: " + entry.chosen + " • Correct: " + entry.answer;
+      why.textContent = entry.explanation;
+      item.append(question, answers, why);
+      return item;
+    })
+  );
 }
 
 function startShift(modeKey = state.modeKey) {
@@ -529,6 +646,7 @@ function startShift(modeKey = state.modeKey) {
   state.resolvedAnswers = 0;
   state.ticketMistakes = 0;
   state.ticketExpired = false;
+  state.log = [];
 
   el.startScreen.hidden = true;
   el.shiftComplete.hidden = true;
@@ -544,6 +662,16 @@ function showModeScreen() {
 }
 
 el.continueBtn.addEventListener("click", advance);
+
+// Pause the ticket clock while the tab is hidden; resume only if a question
+// is still waiting for an answer.
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    stopTimer();
+  } else if (isShiftActive() && !state.answered && !state.ticketExpired && state.phase !== "payout") {
+    runTimer();
+  }
+});
 el.restartBtn.addEventListener("click", () => startShift(state.modeKey));
 el.changeModeBtn.addEventListener("click", showModeScreen);
 el.changeModeTop.addEventListener("click", showModeScreen);

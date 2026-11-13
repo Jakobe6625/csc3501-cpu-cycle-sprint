@@ -39,3 +39,75 @@
     grid-template-columns:1fr;
   }
 }
+
+/* End-of-shift review */
+.modal-card{
+  max-height:90vh;
+  overflow-y:auto;
+}
+.final-stats{
+  grid-template-columns:repeat(4,1fr);
+}
+.review-heading{
+  margin:20px 0 8px;
+  color:var(--muted);
+  font-size:.72rem;
+  font-weight:850;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+.topic-breakdown{
+  display:grid;
+  gap:6px;
+  margin:0;
+  padding:0;
+  list-style:none;
+}
+.topic-breakdown li{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:9px 12px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:#132136;
+  font-size:.86rem;
+}
+.topic-breakdown li.weak{
+  border-color:rgba(255,159,67,.4);
+}
+.topic-breakdown li.weak strong{
+  color:var(--orange);
+}
+.review{
+  margin-top:14px;
+  padding:12px 14px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:#132136;
+}
+.review[hidden]{
+  display:none;
+}
+.review summary{
+  cursor:pointer;
+  font-weight:800;
+}
+.review ol{
+  margin:12px 0 0;
+  padding-left:20px;
+}
+.review li{
+  margin-bottom:14px;
+  line-height:1.45;
+}
+.review li p{
+  margin:4px 0 0;
+  color:var(--muted);
+  font-size:.84rem;
+}
+@media(max-width:520px){
+  .final-stats{
+    grid-template-columns:1fr 1fr;
+  }
+}
