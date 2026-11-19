@@ -86,6 +86,16 @@
           </div>
 
           <p id="hintText" class="hint">Read the service report and choose the Computer Organization topic that best explains the symptom.</p>
+          <section class="powerup-tray" aria-label="Technician power-ups">
+            <div class="powerup-heading"><strong>⚡ Technician Power-Ups</strong><small>Earn at 2 / 3 / 4 / 5 correct in a row</small></div>
+            <div class="powerup-grid">
+              <button type="button" class="powerup" data-powerup="time" title="Add 10 seconds" disabled>⏱ <span>+10s</span> <b class="powerup-count">×0</b></button>
+              <button type="button" class="powerup" data-powerup="hint" title="Remove two incorrect answers" disabled>💡 <span>50/50</span> <b class="powerup-count">×0</b></button>
+              <button type="button" class="powerup" data-powerup="shield" title="Automatically protects the next wrong answer" disabled>🛡 <span>Shield (auto)</span> <b class="powerup-count">×0</b></button>
+              <button type="button" class="powerup" data-powerup="double" title="Double the payout for this ticket" disabled>💰 <span>2× Pay</span> <b class="powerup-count">×0</b></button>
+            </div>
+            <p id="powerupNotice" role="status" aria-live="polite">Answer correctly to build a streak and unlock power-ups!</p>
+          </section>
           <div id="options" class="choices" role="group" aria-label="Answer choices"></div>
 
           <div id="feedback" class="feedback" aria-live="polite" hidden>
