@@ -55,7 +55,9 @@ const state = {
   timeRemaining: 0,
   ticketMistakes: 0,
   ticketExpired: false,
-  log: []
+  log: [],
+  powerups: { time: 0, hint: 0, shield: 0, double: 0 },
+  doublePayActive: false
 };
 
 let timerId = null;
@@ -82,6 +84,8 @@ const el = {
   stageBadge: document.getElementById("stageBadge"),
   hintText: document.getElementById("hintText"),
   options: document.getElementById("options"),
+  powerupButtons: [...document.querySelectorAll("[data-powerup]")],
+  powerupNotice: document.getElementById("powerupNotice"),
   feedback: document.getElementById("feedback"),
   feedbackIcon: document.getElementById("feedbackIcon"),
   feedbackTitle: document.getElementById("feedbackTitle"),
@@ -207,6 +211,63 @@ function logAnswer({ prompt, chosen, answer, explanation, correct }) {
   });
 }
 
+const POWERUP_MILESTONES = { 2: "time", 3: "hint", 4: "shield", 5: "double" };
+const POWERUP_NAMES = { time: "Time Boost", hint: "50/50 Hint", shield: "Repair Shield", double: "Double Pay" };
+
+function updatePowerups() {
+  const canUse = isShiftActive() && !state.answered && !state.ticketExpired && state.phase !== "payout";
+  el.powerupButtons.forEach(button => {
+    const kind = button.dataset.powerup;
+    button.querySelector(".powerup-count").textContent = "×" + state.powerups[kind];
+    button.disabled = kind === "shield" || !canUse || state.powerups[kind] === 0 ||
+      (kind === "double" && state.doublePayActive) ||
+      (kind === "hint" && el.options.querySelectorAll(".choice:not(:disabled)").length <= 2);
+    button.classList.toggle("armed", kind === "double" && state.doublePayActive);
+  });
+}
+
+function announcePowerup(message) {
+  el.powerupNotice.textContent = message;
+}
+
+function earnStreakReward() {
+  const kind = POWERUP_MILESTONES[state.streak];
+  if (!kind) return "";
+  state.powerups[kind] += 1;
+  announcePowerup("Unlocked: " + POWERUP_NAMES[kind] + "! Click it when you need it.");
+  updatePowerups();
+  return " Power-up earned: " + POWERUP_NAMES[kind] + "!";
+}
+
+function usePowerup(kind) {
+  if (!isShiftActive() || state.answered || state.ticketExpired || state.phase === "payout" || !state.powerups[kind]) return;
+  if (kind === "double" && state.doublePayActive) return;
+  if (kind === "hint") {
+    const wrong = [...el.options.querySelectorAll('.choice:not(:disabled)')].filter(button => button.dataset.correct === "false");
+    if (wrong.length < 2) return;
+    wrong.slice(0, 2).forEach(button => { button.disabled = true; button.classList.add("eliminated"); });
+  } else if (kind === "time") {
+    state.timeRemaining += 10;
+    updateTimerDisplay();
+  } else if (kind === "double") {
+    state.doublePayActive = true;
+  } else if (kind === "shield") {
+    // Shield is consumed automatically on the next incorrect answer.
+    announcePowerup("Shield ready! It will block your next wrong-answer penalty.");
+    return;
+  }
+  state.powerups[kind] -= 1;
+  announcePowerup(kind === "time" ? "+10 seconds added!" : kind === "hint" ? "Two wrong answers eliminated." : "Double Pay armed for this ticket!");
+  updatePowerups();
+}
+
+function absorbMistake() {
+  if (!state.powerups.shield) return false;
+  state.powerups.shield -= 1;
+  announcePowerup("Repair Shield absorbed the penalty!");
+  return true;
+}
+
 function handleTicketExpired() {
   if (state.answered) return;
 
@@ -245,6 +306,7 @@ function handleTicketExpired() {
   el.feedbackIcon.textContent = "⏱";
   el.feedbackTitle.textContent = "Ticket clock expired";
   el.feedbackText.textContent = "This repair missed its deadline, so this ticket earns no pay. Move on and recover on the next job.";
+  state.doublePayActive = false;
   el.continueBtn.hidden = false;
   el.continueBtn.textContent = "Close failed ticket";
   updateHud();
@@ -259,6 +321,7 @@ function updateHud() {
   el.satisfactionBar.style.width = state.satisfaction + "%";
   el.modeLabel.textContent = mode().label;
   el.rewardLabel.textContent = money(potentialPay());
+  updatePowerups();
 }
 
 function renderTicket() {
@@ -308,6 +371,7 @@ function clearRoundUi() {
   el.feedback.classList.remove("bad");
   el.continueBtn.hidden = true;
   el.options.innerHTML = "";
+  updatePowerups();
 }
 
 function addChoice(text, isCorrect, onChoose) {
@@ -343,6 +407,7 @@ function renderDiagnosis() {
     addChoice(topic.label, topic.key === job.topic, resolveDiagnosis);
   });
 
+  updatePowerups();
   animate(el.console, "swap");
 }
 
@@ -375,22 +440,26 @@ function resolveDiagnosis(option, clicked) {
     state.streak += 1;
     state.bestStreak = Math.max(state.bestStreak, state.streak);
     state.timeRemaining += mode().diagnosisBonus;
+    const rewardMessage = earnStreakReward();
 
     el.feedback.classList.remove("bad");
     el.feedbackIcon.textContent = "✓";
     el.feedbackTitle.textContent = "Diagnosis confirmed";
-    el.feedbackText.textContent = "+" + mode().diagnosisBonus + " seconds added. The technician finding and topic-specific repair are now unlocked.";
+    el.feedbackText.textContent = "+" + mode().diagnosisBonus + " seconds added. The technician finding and topic-specific repair are now unlocked." + rewardMessage;
   } else {
     clicked.classList.add("wrong");
-    state.ticketMistakes += 1;
+    const shielded = absorbMistake();
+    if (!shielded) {
+      state.ticketMistakes += 1;
+      state.timeRemaining = Math.max(1, state.timeRemaining - mode().diagnosisPenalty);
+      state.satisfaction = Math.max(0, state.satisfaction - mode().satisfactionPenalty);
+    }
     state.streak = 0;
-    state.timeRemaining = Math.max(1, state.timeRemaining - mode().diagnosisPenalty);
-    state.satisfaction = Math.max(0, state.satisfaction - mode().satisfactionPenalty);
 
     el.feedback.classList.add("bad");
     el.feedbackIcon.textContent = "!";
     el.feedbackTitle.textContent = "Misdiagnosed";
-    el.feedbackText.textContent = "This is a " + topicLabel(currentJob().topic) + " ticket. -" + mode().diagnosisPenalty + " seconds from the repair clock.";
+    el.feedbackText.textContent = "This is a " + topicLabel(currentJob().topic) + " ticket. " + (shielded ? "Shield blocked the penalty!" : "-" + mode().diagnosisPenalty + " seconds from the repair clock.");
   }
 
   updateTimerDisplay();
@@ -423,6 +492,7 @@ function renderStage() {
     addChoice(option.text, option.isCorrect, resolveRepairAnswer);
   });
 
+  updatePowerups();
   animate(el.console, "swap");
 }
 
@@ -457,18 +527,21 @@ function resolveRepairAnswer(option, clicked) {
     el.feedback.classList.remove("bad");
     el.feedbackIcon.textContent = "✓";
     el.feedbackTitle.textContent = "Repair step correct";
-    el.feedbackText.textContent = stage.explanation;
+    el.feedbackText.textContent = stage.explanation + earnStreakReward();
   } else {
     clicked.classList.add("wrong");
-    state.ticketMistakes += 1;
+    const shielded = absorbMistake();
+    if (!shielded) {
+      state.ticketMistakes += 1;
+      state.timeRemaining = Math.max(1, state.timeRemaining - mode().repairPenalty);
+      state.satisfaction = Math.max(0, state.satisfaction - mode().satisfactionPenalty);
+    }
     state.streak = 0;
-    state.timeRemaining = Math.max(1, state.timeRemaining - mode().repairPenalty);
-    state.satisfaction = Math.max(0, state.satisfaction - mode().satisfactionPenalty);
 
     el.feedback.classList.add("bad");
     el.feedbackIcon.textContent = "!";
     el.feedbackTitle.textContent = "Repair error";
-    el.feedbackText.textContent = "The highlighted action is correct. " + stage.explanation + " -" + mode().repairPenalty + " seconds.";
+    el.feedbackText.textContent = "The highlighted action is correct. " + stage.explanation + (shielded ? " Shield blocked the penalty!" : " -" + mode().repairPenalty + " seconds.");
   }
 
   updateTimerDisplay();
@@ -494,7 +567,9 @@ function completeTicket() {
   const basePay = potentialPay(job);
   const accuracyMultiplier = Math.max(0.35, 1 - state.ticketMistakes * 0.18);
   const timeBonus = Math.min(mode().timeBonusCap, Math.floor(state.timeRemaining / 5));
-  const payout = Math.max(5, Math.round(basePay * accuracyMultiplier + timeBonus));
+  const payout = Math.max(5, Math.round(basePay * accuracyMultiplier + timeBonus)) * (state.doublePayActive ? 2 : 1);
+  const doubled = state.doublePayActive;
+  state.doublePayActive = false;
 
   state.earnings += payout;
   state.phase = "payout";
@@ -507,6 +582,7 @@ function completeTicket() {
   el.feedbackText.textContent = state.ticketMistakes === 0
     ? "Clean repair. Full shift-rate pay plus a speed bonus."
     : "The ticket was completed, but mistakes reduced the final payout.";
+  if (doubled) el.feedbackText.textContent += " Double Pay applied (2×)!";
 
   el.continueBtn.hidden = false;
   el.continueBtn.textContent = state.jobIndex < mode().jobs - 1 ? "Take next ticket" : "Clock out";
@@ -520,6 +596,7 @@ function moveToNextTicketOrFinish() {
     state.phase = "diagnosis";
     state.ticketMistakes = 0;
     state.ticketExpired = false;
+    state.doublePayActive = false;
     startTicketTimer();
     renderDiagnosis();
     updateHud();
@@ -647,6 +724,9 @@ function startShift(modeKey = state.modeKey) {
   state.ticketMistakes = 0;
   state.ticketExpired = false;
   state.log = [];
+  state.powerups = { time: 0, hint: 0, shield: 0, double: 0 };
+  state.doublePayActive = false;
+  announcePowerup("Answer correctly to build a streak and unlock power-ups!");
 
   el.startScreen.hidden = true;
   el.shiftComplete.hidden = true;
@@ -662,6 +742,7 @@ function showModeScreen() {
 }
 
 el.continueBtn.addEventListener("click", advance);
+el.powerupButtons.forEach(button => button.addEventListener("click", () => usePowerup(button.dataset.powerup)));
 
 // Pause the ticket clock while the tab is hidden; resume only if a question
 // is still waiting for an answer.
