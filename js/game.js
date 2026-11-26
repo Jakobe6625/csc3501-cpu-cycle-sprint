@@ -1,35 +1,66 @@
 import { JOBS, TOPICS } from "./jobs.js";
 
-const MODES = {
-  training: {
-    label: "Training Shift",
-    pool: "main",
-    jobs: 5,
-    seconds: 55,
+const WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+const SHIFT_TYPES = {
+  slow: {
+    label: "Slow Shift",
+    minJobs: 3,
+    maxJobs: 4,
+    seconds: 58,
+    advancedChance: 0,
     diagnosisBonus: 8,
+    diagnosisPenalty: 5,
+    repairPenalty: 3,
+    satisfactionPenalty: 5,
+    payMultiplier: 0.9,
+    timeBonusCap: 12
+  },
+  steady: {
+    label: "Steady Shift",
+    minJobs: 4,
+    maxJobs: 5,
+    seconds: 52,
+    advancedChance: 0,
+    diagnosisBonus: 7,
     diagnosisPenalty: 6,
     repairPenalty: 4,
     satisfactionPenalty: 6,
     payMultiplier: 1,
-    timeBonusCap: 12
+    timeBonusCap: 13
+  },
+  busy: {
+    label: "Busy Shift",
+    minJobs: 5,
+    maxJobs: 6,
+    seconds: 46,
+    advancedChance: 0.15,
+    diagnosisBonus: 6,
+    diagnosisPenalty: 7,
+    repairPenalty: 5,
+    satisfactionPenalty: 8,
+    payMultiplier: 1.1,
+    timeBonusCap: 14
   },
   rush: {
-    label: "Rush Hour",
-    pool: "main",
-    jobs: 7,
-    seconds: 38,
+    label: "Rush Shift",
+    minJobs: 6,
+    maxJobs: 7,
+    seconds: 39,
+    advancedChance: 0.35,
     diagnosisBonus: 5,
     diagnosisPenalty: 8,
     repairPenalty: 6,
     satisfactionPenalty: 10,
-    payMultiplier: 1.15,
+    payMultiplier: 1.25,
     timeBonusCap: 16
   },
   overtime: {
-    label: "Overtime",
-    pool: "overtime",
-    jobs: 5,
+    label: "Overtime Shift",
+    minJobs: 4,
+    maxJobs: 6,
     seconds: 36,
+    advancedChance: 0.75,
     diagnosisBonus: 4,
     diagnosisPenalty: 9,
     repairPenalty: 7,
@@ -40,7 +71,12 @@ const MODES = {
 };
 
 const state = {
-  modeKey: "training",
+  week: [],
+  dayIndex: 0,
+  modeKey: "steady",
+  dayStartEarnings: 0,
+  dayResults: [],
+  weekLog: [],
   jobs: [],
   jobIndex: 0,
   phase: "diagnosis",
@@ -112,7 +148,15 @@ const el = {
 };
 
 function mode() {
-  return MODES[state.modeKey];
+  const scheduled = state.week[state.dayIndex];
+  if (scheduled) return scheduled;
+
+  return {
+    day: WEEK_DAYS[0],
+    typeKey: "steady",
+    jobs: 4,
+    ...SHIFT_TYPES.steady
+  };
 }
 
 function currentJob() {
@@ -134,6 +178,52 @@ function shuffle(items) {
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
   return copy;
+}
+
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function generateWeekSchedule() {
+  // Every week contains a mix of calm and difficult shifts, but the order is
+  // hidden from the player. The sixth day is an extra steady/busy/rush draw.
+  const extraType = shuffle(["steady", "busy", "rush"])[0];
+  const typeBag = shuffle(["slow", "steady", "busy", "rush", "overtime", extraType]);
+
+  return WEEK_DAYS.map((day, index) => {
+    const typeKey = typeBag[index];
+    const type = SHIFT_TYPES[typeKey];
+
+    return {
+      day,
+      typeKey,
+      ...type,
+      jobs: randomInt(type.minJobs, type.maxJobs)
+    };
+  });
+}
+
+function buildJobsForShift(shift) {
+  const mainJobs = shuffle(JOBS.filter(job => job.tier === "main"));
+  const advancedJobs = shuffle(JOBS.filter(job => job.tier === "overtime"));
+  const advancedCount = Math.min(
+    advancedJobs.length,
+    Math.round(shift.jobs * shift.advancedChance)
+  );
+  const mainCount = Math.min(mainJobs.length, shift.jobs - advancedCount);
+
+  const selected = [
+    ...advancedJobs.slice(0, advancedCount),
+    ...mainJobs.slice(0, mainCount)
+  ];
+
+  if (selected.length < shift.jobs) {
+    const used = new Set(selected.map(job => job.id));
+    const leftovers = shuffle(JOBS.filter(job => !used.has(job.id)));
+    selected.push(...leftovers.slice(0, shift.jobs - selected.length));
+  }
+
+  return shuffle(selected).slice(0, shift.jobs);
 }
 
 function money(value) {
@@ -200,7 +290,7 @@ function isShiftActive() {
 
 // Records one answered (or timed-out) question for the end-of-shift review.
 function logAnswer({ prompt, chosen, answer, explanation, correct }) {
-  state.log.push({
+  const entry = {
     topic: currentJob().topic,
     jobId: currentJob().id,
     prompt,
@@ -208,7 +298,9 @@ function logAnswer({ prompt, chosen, answer, explanation, correct }) {
     answer,
     explanation,
     correct
-  });
+  };
+  state.log.push(entry);
+  state.weekLog.push(entry);
 }
 
 const POWERUP_MILESTONES = { 2: "time", 3: "hint", 4: "shield", 5: "double" };
@@ -319,7 +411,7 @@ function updateHud() {
   el.streak.textContent = state.streak;
   el.satisfactionText.textContent = state.satisfaction + "%";
   el.satisfactionBar.style.width = state.satisfaction + "%";
-  el.modeLabel.textContent = mode().label;
+  el.modeLabel.textContent = mode().day + " • " + mode().label;
   el.rewardLabel.textContent = money(potentialPay());
   updatePowerups();
 }
@@ -392,15 +484,15 @@ function renderDiagnosis() {
 
   const job = currentJob();
   const correctTopic = TOPICS.find(topic => topic.key === job.topic);
-  const availableTopics = TOPICS.filter(topic => topic.tier === mode().pool && topic.key !== job.topic);
+  const availableTopics = TOPICS.filter(topic => topic.tier === job.tier && topic.key !== job.topic);
   const distractors = shuffle(availableTopics).slice(0, 3);
   const choices = shuffle([correctTopic, ...distractors]);
 
   el.stationLabel.textContent = "DIAGNOSTIC TERMINAL";
   el.stagePrompt.textContent = "What is actually causing this customer's problem?";
   el.stageBadge.textContent = "Diagnosis";
-  el.hintText.textContent = state.modeKey === "overtime"
-    ? "Overtime tickets use the advanced topic pool. Diagnose the underlying concept before the premium repair clock gets away from you."
+  el.hintText.textContent = job.tier === "overtime"
+    ? "Advanced ticket: diagnose the underlying concept before the tougher repair clock gets away from you."
     : "Read the symptom, not the hidden technical answer. Choose the course topic that best explains the customer's complaint.";
 
   choices.forEach(topic => {
@@ -637,33 +729,56 @@ function finishShift() {
   const accuracy = state.resolvedAnswers
     ? Math.round((state.correctAnswers / state.resolvedAnswers) * 100)
     : 0;
+  const dayEarnings = state.earnings - state.dayStartEarnings;
+  const weekFinished = state.dayIndex >= WEEK_DAYS.length - 1;
 
-  el.finalEarnings.textContent = money(state.earnings);
-  el.finalAccuracy.textContent = accuracy + "%";
-  el.finalSatisfaction.textContent = state.satisfaction + "%";
-  el.bestStreak.textContent = state.bestStreak;
+  state.dayResults.push({
+    day: mode().day,
+    shift: mode().label,
+    earnings: dayEarnings,
+    accuracy,
+    satisfaction: state.satisfaction
+  });
 
-  if (state.modeKey === "overtime") {
-    el.finalSummary.textContent = accuracy >= 80
-      ? "Overtime cleared. You handled the advanced tickets and earned the premium shift rate."
-      : "Overtime complete. The premium tickets pay more, but the advanced topics punish weak diagnoses quickly.";
+  if (weekFinished) {
+    const weeklyCorrect = state.weekLog.filter(entry => entry.correct).length;
+    const weeklyAccuracy = state.weekLog.length
+      ? Math.round((weeklyCorrect / state.weekLog.length) * 100)
+      : 0;
+    const averageSatisfaction = state.dayResults.length
+      ? Math.round(state.dayResults.reduce((sum, result) => sum + result.satisfaction, 0) / state.dayResults.length)
+      : 100;
+
+    el.finalEarnings.textContent = money(state.earnings);
+    el.finalAccuracy.textContent = weeklyAccuracy + "%";
+    el.finalSatisfaction.textContent = averageSatisfaction + "%";
+    el.bestStreak.textContent = state.bestStreak;
+    el.finalSummary.textContent =
+      "Work week complete. You survived six randomized shifts and finished with " +
+      money(state.earnings) + " in total earnings.";
+    renderReview(state.weekLog);
+    el.restartBtn.textContent = "Start a new week";
   } else {
-    el.finalSummary.textContent = accuracy >= 90
-      ? "Excellent shift. You diagnosed the customer's symptoms and completed the topic-specific repairs with very few mistakes."
-      : accuracy >= 70
-        ? "Solid shift. Your repairs are working; a few diagnosis or repair decisions still need tightening."
-        : "Shift complete. Replay the shop and use the technician board to strengthen the topics that cost you time.";
+    el.finalEarnings.textContent = money(state.earnings);
+    el.finalAccuracy.textContent = accuracy + "%";
+    el.finalSatisfaction.textContent = state.satisfaction + "%";
+    el.bestStreak.textContent = state.bestStreak;
+    el.finalSummary.textContent =
+      mode().day + " complete — " + mode().label + ". You earned " +
+      money(dayEarnings) + " today. Weekly total: " + money(state.earnings) + ".";
+    renderReview(state.log);
+    el.restartBtn.textContent = "Continue to " + WEEK_DAYS[state.dayIndex + 1];
   }
 
-  renderReview();
+  el.changeModeBtn.hidden = true;
   el.shiftComplete.hidden = false;
 }
 
 // End-of-shift review: score per topic (weakest first) plus every missed
 // question with the correct answer and explanation.
-function renderReview() {
+function renderReview(entries = state.log) {
   const byTopic = {};
-  for (const entry of state.log) {
+  for (const entry of entries) {
     const tally = (byTopic[entry.topic] ??= { right: 0, total: 0 });
     tally.total += 1;
     if (entry.correct) tally.right += 1;
@@ -684,7 +799,7 @@ function renderReview() {
       })
   );
 
-  const missed = state.log.filter(entry => !entry.correct);
+  const missed = entries.filter(entry => !entry.correct);
   el.missedCount.textContent = missed.length;
   el.review.hidden = missed.length === 0;
   el.review.open = false;
@@ -704,19 +819,17 @@ function renderReview() {
   );
 }
 
-function startShift(modeKey = state.modeKey) {
+function startDay() {
   stopTimer();
 
-  state.modeKey = modeKey;
-
-  const pool = JOBS.filter(job => job.tier === mode().pool);
-  state.jobs = shuffle(pool).slice(0, mode().jobs);
+  const shift = mode();
+  state.modeKey = shift.typeKey;
+  state.jobs = buildJobsForShift(shift);
   state.jobIndex = 0;
   state.phase = "diagnosis";
   state.stageIndex = 0;
-  state.earnings = 0;
+  state.dayStartEarnings = state.earnings;
   state.streak = 0;
-  state.bestStreak = 0;
   state.satisfaction = 100;
   state.answered = false;
   state.correctAnswers = 0;
@@ -724,21 +837,70 @@ function startShift(modeKey = state.modeKey) {
   state.ticketMistakes = 0;
   state.ticketExpired = false;
   state.log = [];
-  state.powerups = { time: 0, hint: 0, shield: 0, double: 0 };
   state.doublePayActive = false;
-  announcePowerup("Answer correctly to build a streak and unlock power-ups!");
 
   el.startScreen.hidden = true;
   el.shiftComplete.hidden = true;
+  announcePowerup(
+    shift.day + ": " + shift.label + " — " + shift.jobs +
+    " tickets scheduled. Future shifts stay hidden until you clock in."
+  );
   startTicketTimer();
   renderDiagnosis();
   updateHud();
 }
 
-function showModeScreen() {
+function startNewWeek() {
   stopTimer();
-  el.shiftComplete.hidden = true;
-  el.startScreen.hidden = false;
+
+  state.week = generateWeekSchedule();
+  state.dayIndex = 0;
+  state.modeKey = state.week[0].typeKey;
+  state.earnings = 0;
+  state.bestStreak = 0;
+  state.dayResults = [];
+  state.weekLog = [];
+  state.powerups = { time: 0, hint: 0, shield: 0, double: 0 };
+  state.doublePayActive = false;
+
+  startDay();
+}
+
+function advanceWeek() {
+  if (state.dayIndex >= WEEK_DAYS.length - 1) {
+    startNewWeek();
+    return;
+  }
+
+  state.dayIndex += 1;
+  startDay();
+}
+
+function configureWeekUi() {
+  el.changeModeBtn.hidden = true;
+  el.changeModeTop.hidden = true;
+
+  const card = el.startScreen.querySelector(".modal-card");
+  const heading = card?.querySelector("h2");
+  const intro = card?.querySelector("h2 + p");
+  if (heading) heading.textContent = "Start your work week";
+  if (intro) {
+    intro.textContent =
+      "Work Monday through Saturday. Each day's workload is randomized and stays hidden until you clock in.";
+  }
+
+  const [startButton, ...extraButtons] = el.modeButtons;
+  extraButtons.forEach(button => {
+    button.hidden = true;
+  });
+
+  if (startButton) {
+    startButton.style.gridColumn = "1 / -1";
+    startButton.querySelector(".mode-icon").textContent = "W";
+    startButton.querySelector("strong").textContent = "Start Week";
+    startButton.querySelector("small").textContent =
+      "Monday–Saturday • randomized daily workload • future shifts stay hidden";
+  }
 }
 
 el.continueBtn.addEventListener("click", advance);
@@ -753,13 +915,13 @@ document.addEventListener("visibilitychange", () => {
     runTimer();
   }
 });
-el.restartBtn.addEventListener("click", () => startShift(state.modeKey));
-el.changeModeBtn.addEventListener("click", showModeScreen);
-el.changeModeTop.addEventListener("click", showModeScreen);
-el.modeButtons.forEach(button => {
-  button.addEventListener("click", () => startShift(button.dataset.mode));
-});
 
+el.restartBtn.addEventListener("click", advanceWeek);
+if (el.modeButtons[0]) {
+  el.modeButtons[0].addEventListener("click", startNewWeek);
+}
+
+configureWeekUi();
 state.jobs = [JOBS.find(job => job.tier === "main")];
 state.timeRemaining = mode().seconds;
 updateHud();
