@@ -30,10 +30,12 @@
       </article>
     </section>
 
-    <section class="mode-strip">
-      <span>Current shift:</span>
-      <strong id="modeLabel">Training Shift</strong>
-      <button id="changeModeTop" class="text-btn" type="button">Change mode</button>
+    <section class="mode-strip" aria-label="Current work day and shift">
+      <span>Day:</span>
+      <strong id="dayLabel">Monday</strong>
+      <span>•</span>
+      <span>Shift:</span>
+      <strong id="modeLabel">Waiting to clock in</strong>
     </section>
 
     <section class="game-grid">
@@ -121,23 +123,13 @@
     <section id="startScreen" class="modal">
       <div class="modal-card mode-card">
         <p class="eyebrow">CLOCK IN</p>
-        <h2>Choose your shift</h2>
-        <p>Every ticket begins with a customer complaint. Diagnose the underlying class topic, then complete three repair steps built around that topic.</p>
+        <h2>Start your work week</h2>
+        <p>Work Monday through Saturday. You do not choose the shift — each day's workload and shift type are randomized when the week begins.</p>
         <div class="mode-options">
-          <button class="mode-option" data-mode="training" type="button">
-            <span class="mode-icon">T</span>
-            <strong>Training Shift</strong>
-            <small>5 random main-pool tickets • 55 sec each • +8 sec correct diagnosis</small>
-          </button>
-          <button class="mode-option rush" data-mode="rush" type="button">
-            <span class="mode-icon">R</span>
-            <strong>Rush Hour</strong>
-            <small>7 random main-pool tickets • 38 sec each • 1.15× base pay</small>
-          </button>
-          <button class="mode-option overtime" data-mode="overtime" type="button">
-            <span class="mode-icon">OT</span>
-            <strong>Overtime</strong>
-            <small>5 advanced tickets • 36 sec each • 1.75× base pay • tougher penalties</small>
+          <button id="startWeekBtn" class="mode-option week-start-option" type="button">
+            <span class="mode-icon">W</span>
+            <strong>Start Week</strong>
+            <small>Monday–Saturday • randomized daily shifts • future shifts stay hidden</small>
           </button>
         </div>
       </div>
@@ -161,8 +153,7 @@
           <ol id="missedList"></ol>
         </details>
         <div class="end-actions">
-          <button id="restartBtn" class="primary">Work another shift</button>
-          <button id="changeModeBtn" class="secondary-btn">Change mode</button>
+          <button id="restartBtn" class="primary">Continue</button>
         </div>
       </div>
     </section>
