@@ -107,6 +107,7 @@ const el = {
   clockMirror: document.getElementById("clockMirror"),
   satisfactionText: document.getElementById("satisfactionText"),
   satisfactionBar: document.getElementById("satisfactionBar"),
+  dayLabel: document.getElementById("dayLabel"),
   modeLabel: document.getElementById("modeLabel"),
   rewardLabel: document.getElementById("rewardLabel"),
   ticketId: document.getElementById("ticketId"),
@@ -139,12 +140,10 @@ const el = {
   missedList: document.getElementById("missedList"),
   review: document.getElementById("missedReview"),
   restartBtn: document.getElementById("restartBtn"),
-  changeModeBtn: document.getElementById("changeModeBtn"),
-  changeModeTop: document.getElementById("changeModeTop"),
+  startWeekBtn: document.getElementById("startWeekBtn"),
   stations: [...document.querySelectorAll(".station")],
   ticketPanel: document.querySelector(".ticket-panel"),
-  console: document.querySelector(".console"),
-  modeButtons: [...document.querySelectorAll(".mode-option")]
+  console: document.querySelector(".console")
 };
 
 function mode() {
@@ -411,7 +410,8 @@ function updateHud() {
   el.streak.textContent = state.streak;
   el.satisfactionText.textContent = state.satisfaction + "%";
   el.satisfactionBar.style.width = state.satisfaction + "%";
-  el.modeLabel.textContent = mode().day + " • " + mode().label;
+  el.dayLabel.textContent = mode().day;
+  el.modeLabel.textContent = mode().label;
   el.rewardLabel.textContent = money(potentialPay());
   updatePowerups();
 }
@@ -770,7 +770,6 @@ function finishShift() {
     el.restartBtn.textContent = "Continue to " + WEEK_DAYS[state.dayIndex + 1];
   }
 
-  el.changeModeBtn.hidden = true;
   el.shiftComplete.hidden = false;
 }
 
@@ -876,33 +875,6 @@ function advanceWeek() {
   startDay();
 }
 
-function configureWeekUi() {
-  el.changeModeBtn.hidden = true;
-  el.changeModeTop.hidden = true;
-
-  const card = el.startScreen.querySelector(".modal-card");
-  const heading = card?.querySelector("h2");
-  const intro = card?.querySelector("h2 + p");
-  if (heading) heading.textContent = "Start your work week";
-  if (intro) {
-    intro.textContent =
-      "Work Monday through Saturday. Each day's workload is randomized and stays hidden until you clock in.";
-  }
-
-  const [startButton, ...extraButtons] = el.modeButtons;
-  extraButtons.forEach(button => {
-    button.hidden = true;
-  });
-
-  if (startButton) {
-    startButton.style.gridColumn = "1 / -1";
-    startButton.querySelector(".mode-icon").textContent = "W";
-    startButton.querySelector("strong").textContent = "Start Week";
-    startButton.querySelector("small").textContent =
-      "Monday–Saturday • randomized daily workload • future shifts stay hidden";
-  }
-}
-
 el.continueBtn.addEventListener("click", advance);
 el.powerupButtons.forEach(button => button.addEventListener("click", () => usePowerup(button.dataset.powerup)));
 
@@ -917,11 +889,7 @@ document.addEventListener("visibilitychange", () => {
 });
 
 el.restartBtn.addEventListener("click", advanceWeek);
-if (el.modeButtons[0]) {
-  el.modeButtons[0].addEventListener("click", startNewWeek);
-}
-
-configureWeekUi();
+el.startWeekBtn.addEventListener("click", startNewWeek);
 state.jobs = [JOBS.find(job => job.tier === "main")];
 state.timeRemaining = mode().seconds;
 updateHud();
