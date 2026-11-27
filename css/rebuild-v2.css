@@ -111,3 +111,13 @@
     grid-template-columns:1fr 1fr;
   }
 }
+
+
+/* Weekly campaign start screen */
+.week-start-option{
+  grid-column:1 / -1;
+  width:min(440px,100%);
+  justify-self:center;
+  grid-template-columns:44px auto;
+  justify-content:center;
+}
