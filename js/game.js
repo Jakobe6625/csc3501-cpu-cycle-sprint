@@ -410,8 +410,8 @@ function updateHud() {
   el.streak.textContent = state.streak;
   el.satisfactionText.textContent = state.satisfaction + "%";
   el.satisfactionBar.style.width = state.satisfaction + "%";
-  el.dayLabel.textContent = mode().day;
-  el.modeLabel.textContent = mode().label;
+  if (el.dayLabel) el.dayLabel.textContent = mode().day;
+  if (el.modeLabel) el.modeLabel.textContent = mode().label;
   el.rewardLabel.textContent = money(potentialPay());
   updatePowerups();
 }
@@ -889,7 +889,7 @@ document.addEventListener("visibilitychange", () => {
 });
 
 el.restartBtn.addEventListener("click", advanceWeek);
-el.startWeekBtn.addEventListener("click", startNewWeek);
+el.startWeekBtn?.addEventListener("click", startNewWeek);
 state.jobs = [JOBS.find(job => job.tier === "main")];
 state.timeRemaining = mode().seconds;
 updateHud();
