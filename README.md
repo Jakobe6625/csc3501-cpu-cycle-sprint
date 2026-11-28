@@ -83,8 +83,7 @@ The Overtime pool currently contains 8 tickets.
 ## Project structure
 
 - index.html — game interface
-- css/style.css — base visual design
-- css/rebuild-v2.css — v2 layout and Overtime overrides
+- css/style.css — all styles (black and red theme)
 - js/jobs.js — topic definitions, ticket scenarios, and repair content
 - js/game.js — modes, timer, diagnosis, payouts, progression, and rendering
 - scripts/check-jobs.mjs — content checker for js/jobs.js (run `npm run check`; also runs in GitHub Actions on every PR)

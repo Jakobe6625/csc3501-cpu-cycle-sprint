@@ -104,7 +104,6 @@ const el = {
   earnings: document.getElementById("earnings"),
   streak: document.getElementById("streak"),
   timer: document.getElementById("timer"),
-  clockMirror: document.getElementById("clockMirror"),
   satisfactionText: document.getElementById("satisfactionText"),
   satisfactionBar: document.getElementById("satisfactionBar"),
   dayLabel: document.getElementById("dayLabel"),
@@ -250,12 +249,8 @@ function stopTimer() {
 function updateTimerDisplay() {
   const text = state.timeRemaining + "s";
   el.timer.textContent = text;
-  el.clockMirror.textContent = text;
-
-  [el.timer, el.clockMirror].forEach(node => {
-    node.classList.toggle("warning", state.timeRemaining <= 15 && state.timeRemaining > 7);
-    node.classList.toggle("danger", state.timeRemaining <= 7);
-  });
+  el.timer.classList.toggle("warning", state.timeRemaining <= 15 && state.timeRemaining > 7);
+  el.timer.classList.toggle("danger", state.timeRemaining <= 7);
 }
 
 // Resumes the ticket clock without resetting it. The clock only runs while a
@@ -394,7 +389,7 @@ function handleTicketExpired() {
 
   el.feedback.hidden = false;
   el.feedback.classList.add("bad");
-  el.feedbackIcon.textContent = "⏱";
+  el.feedbackIcon.textContent = "!";
   el.feedbackTitle.textContent = "Ticket clock expired";
   el.feedbackText.textContent = "This repair missed its deadline, so this ticket earns no pay. Move on and recover on the next job.";
   state.doublePayActive = false;
@@ -445,11 +440,10 @@ function renderPipeline() {
 
   el.stations.forEach((station, index) => {
     if (index === 0) {
-      setStationContent(station, "?", "Diagnose", "Identify the topic");
+      setStationContent(station, "1", "Diagnose", "Identify the topic");
     } else {
       const stage = job.stages[index - 1];
-      const marker = stage.name.charAt(0).toUpperCase();
-      setStationContent(station, marker, stage.name, stage.short);
+      setStationContent(station, String(index + 1), stage.name, stage.short);
     }
 
     station.classList.toggle("active", index === activeIndex);
