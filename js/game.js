@@ -488,6 +488,10 @@ function renderRail() {
     if (i === state.jobIndex) {
       li.classList.add("current");
       tag.textContent = "At bench";
+      if (state.phase === "payout") {
+        li.classList.add(slot.fast ? "fast" : "done");
+        tag.textContent = slot.fast ? "Done fast ✓" : "Done";
+      }
     } else {
       const ratio = slot.patience / shift.patience;
       if (slot.angry) li.classList.add("angry");
@@ -777,6 +781,11 @@ function completeTicket() {
   const payout = Math.max(5, Math.round(basePay * accuracyMultiplier + timeBonus)) * (state.doublePayActive ? 2 : 1);
   const doubled = state.doublePayActive;
   state.doublePayActive = false;
+  // "Fast" = finished with at least half of the shift's starting clock left.
+  const fast = state.timeRemaining >= mode().seconds / 2;
+  if (state.queue[state.jobIndex]) state.queue[state.jobIndex].fast = fast;
+  el.ticketPanel.classList.toggle("fast", fast);
+  el.feedback.classList.toggle("fast", fast);
 
   state.earnings += payout;
   state.phase = "payout";
@@ -785,7 +794,7 @@ function completeTicket() {
   el.feedback.hidden = false;
   el.feedback.classList.remove("bad");
   el.feedbackIcon.textContent = "$";
-  el.feedbackTitle.textContent = "Ticket paid " + money(payout);
+  el.feedbackTitle.textContent = (fast ? "Fast service! " : "") + "Ticket paid " + money(payout);
   el.feedbackText.textContent = state.ticketMistakes === 0
     ? "Clean repair. Full shift-rate pay plus a speed bonus."
     : "The ticket was completed, but mistakes reduced the final payout.";
@@ -793,12 +802,15 @@ function completeTicket() {
 
   el.continueBtn.hidden = false;
   el.continueBtn.textContent = state.jobIndex < mode().jobs - 1 ? "Take next ticket" : "Clock out";
+  renderRail();
   updateHud();
 }
 
 function moveToNextTicketOrFinish() {
   if (state.jobIndex < mode().jobs - 1) {
     state.jobIndex += 1;
+    el.ticketPanel.classList.remove("fast");
+    el.feedback.classList.remove("fast");
     if (state.arrived <= state.jobIndex) customerArrives();
     state.stageIndex = 0;
     state.phase = "diagnosis";
@@ -955,6 +967,8 @@ function startDay() {
   state.ticketExpired = false;
   state.log = [];
   state.doublePayActive = false;
+  el.ticketPanel.classList.remove("fast");
+  el.feedback.classList.remove("fast");
   state.queue = [];
   state.arrived = 0;
   customerArrives();

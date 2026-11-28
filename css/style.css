@@ -609,3 +609,30 @@ h1, h2, h3, p { margin: 0; }
   .rail-head { flex-direction: column; gap: 2px; }
   .rail-slips { grid-auto-columns: 150px; }
 }
+
+/* ---------- Fast service (finished with half the clock left) ---------- */
+
+.slip.fast { outline-color: var(--green); background: #dff3e8; }
+.slip.fast .slip-tag { color: #1f7a4d; }
+.slip.done .slip-tag { color: var(--muted); }
+
+.ticket-panel.fast .ticket { border-top-color: var(--green); }
+.ticket-panel.fast .ticket::after {
+  content: "FAST";
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  padding: 2px 8px;
+  border: 2px solid #1f7a4d;
+  border-radius: 4px;
+  color: #1f7a4d;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  transform: rotate(-6deg);
+}
+.ticket-panel.fast .ticket { position: relative; }
+.ticket-panel.fast .ticket-meta-top span:last-child { visibility: hidden; }
+
+.feedback.fast { border-left-color: var(--green); background: rgba(76, 195, 138, 0.14); }
+.feedback.fast #feedbackTitle { color: var(--green); }
