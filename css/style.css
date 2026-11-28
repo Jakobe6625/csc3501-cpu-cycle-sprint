@@ -458,3 +458,116 @@ h1, h2, h3, p { margin: 0; }
   .final-stats div:nth-child(3) { border-left: 0; }
   .final-stats div:nth-child(n+3) { border-top: 1px solid var(--line); }
 }
+
+/* ---------- Order rail ---------- */
+
+.rail {
+  margin-bottom: 24px;
+}
+
+.rail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.rail-head h2 { font-size: 0.95rem; font-weight: 600; }
+#railStatus { color: var(--muted); font-family: var(--mono); font-size: 0.8rem; }
+.rail.busy #railStatus { color: var(--red); }
+
+/* The rail itself: a metal bar the slips hang from. */
+.rail-slips {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 180px;
+  gap: 10px;
+  min-height: 132px;
+  margin: 0;
+  padding: 14px 12px 12px;
+  overflow-x: auto;
+  list-style: none;
+  border-top: 3px solid #3a3333;
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: rgba(10, 8, 8, 0.55);
+}
+
+.slip {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px 12px;
+  border-radius: 0 0 4px 4px;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+  transform-origin: top center;
+}
+/* clip holding the slip to the rail */
+.slip::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 26px;
+  height: 8px;
+  margin-left: -13px;
+  border-radius: 2px;
+  background: #6b6262;
+}
+
+.slip-id { font-family: var(--mono); font-size: 0.72rem; color: #6f6666; }
+.slip-tag { font-size: 0.72rem; font-weight: 600; color: #6f6666; }
+.slip p {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.slip.current { outline: 2px solid var(--red); outline-offset: 2px; }
+.slip.current .slip-tag { color: var(--red); }
+
+.patience {
+  display: block;
+  height: 4px;
+  margin-top: auto;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgba(29, 26, 26, 0.12);
+}
+.patience b { display: block; height: 100%; background: #6f6666; transition: width 1s linear; }
+
+.slip.impatient .slip-tag { color: #b86a10; }
+.slip.impatient .patience b { background: var(--amber); }
+.slip.impatient { animation: sway 1.6s ease-in-out infinite; }
+
+.slip.angry { background: #f3d9d9; }
+.slip.angry .slip-tag { color: #b3161b; }
+
+.slip.empty {
+  background: transparent;
+  border: 1px dashed var(--line-strong);
+  box-shadow: none;
+}
+.slip.empty::before { background: #3a3333; }
+
+.slip.fresh { animation: hangIn 0.45s ease-out; }
+
+@keyframes hangIn {
+  from { transform: translateY(-14px) rotate(-4deg); opacity: 0; }
+  60% { transform: rotate(2deg); opacity: 1; }
+  to { transform: none; }
+}
+@keyframes sway {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(1.5deg); }
+}
+
+@media (max-width: 560px) {
+  .rail-head { flex-direction: column; gap: 2px; }
+  .rail-slips { grid-auto-columns: 150px; }
+}

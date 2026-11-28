@@ -4,6 +4,8 @@ const WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satu
 
 const SHIFT_TYPES = {
   slow: {
+    arrivalEvery: 45,
+    patience: 120,
     label: "Slow Shift",
     minJobs: 3,
     maxJobs: 4,
@@ -17,6 +19,8 @@ const SHIFT_TYPES = {
     timeBonusCap: 12
   },
   steady: {
+    arrivalEvery: 35,
+    patience: 110,
     label: "Steady Shift",
     minJobs: 4,
     maxJobs: 5,
@@ -30,6 +34,8 @@ const SHIFT_TYPES = {
     timeBonusCap: 13
   },
   busy: {
+    arrivalEvery: 28,
+    patience: 100,
     label: "Busy Shift",
     minJobs: 5,
     maxJobs: 6,
@@ -43,6 +49,8 @@ const SHIFT_TYPES = {
     timeBonusCap: 14
   },
   rush: {
+    arrivalEvery: 20,
+    patience: 90,
     label: "Rush Shift",
     minJobs: 6,
     maxJobs: 7,
@@ -56,6 +64,8 @@ const SHIFT_TYPES = {
     timeBonusCap: 16
   },
   overtime: {
+    arrivalEvery: 28,
+    patience: 90,
     label: "Overtime Shift",
     minJobs: 4,
     maxJobs: 6,
@@ -93,10 +103,14 @@ const state = {
   ticketExpired: false,
   log: [],
   powerups: { time: 0, hint: 0, shield: 0, double: 0 },
-  doublePayActive: false
+  doublePayActive: false,
+  queue: [],
+  arrived: 0,
+  nextArrivalIn: 0
 };
 
 let timerId = null;
+let shopTimerId = null;
 
 const el = {
   jobNumber: document.getElementById("jobNumber"),
@@ -141,6 +155,9 @@ const el = {
   restartBtn: document.getElementById("restartBtn"),
   startWeekBtn: document.getElementById("startWeekBtn"),
   stations: [...document.querySelectorAll(".station")],
+  rail: document.querySelector(".rail"),
+  railSlips: document.getElementById("railSlips"),
+  railStatus: document.getElementById("railStatus"),
   ticketPanel: document.querySelector(".ticket-panel"),
   console: document.querySelector(".console")
 };
@@ -396,6 +413,110 @@ function handleTicketExpired() {
   el.continueBtn.hidden = false;
   el.continueBtn.textContent = "Close failed ticket";
   updateHud();
+}
+
+// ---------- Order rail ----------
+// Customers keep walking in while you work. Waiting tickets lose patience;
+// when a customer runs out, satisfaction takes a hit.
+
+function waitingCount() {
+  return Math.max(0, state.arrived - state.jobIndex - 1);
+}
+
+function customerArrives() {
+  if (state.arrived >= state.jobs.length) return;
+  state.queue[state.arrived] = { patience: mode().patience, angry: false, fresh: true };
+  state.arrived += 1;
+  state.nextArrivalIn = mode().arrivalEvery;
+}
+
+function shopTick() {
+  if (state.arrived < mode().jobs) {
+    state.nextArrivalIn -= 1;
+    if (state.nextArrivalIn <= 0) customerArrives();
+  }
+
+  for (let i = state.jobIndex + 1; i < state.arrived; i += 1) {
+    const slot = state.queue[i];
+    if (slot.patience <= 0) continue;
+    slot.patience -= 1;
+    if (slot.patience === 0) {
+      slot.angry = true;
+      state.satisfaction = Math.max(0, state.satisfaction - Math.ceil(mode().satisfactionPenalty / 2));
+      updateHud();
+    }
+  }
+
+  renderRail();
+}
+
+function startShopClock() {
+  stopShopClock();
+  shopTimerId = setInterval(shopTick, 1000);
+}
+
+function stopShopClock() {
+  clearInterval(shopTimerId);
+  shopTimerId = null;
+}
+
+function renderRail() {
+  if (!el.railSlips) return;
+  const shift = mode();
+  const slips = [];
+
+  for (let i = state.jobIndex; i < state.jobs.length && state.queue.length; i += 1) {
+    const li = document.createElement("li");
+    li.className = "slip";
+
+    if (i >= state.arrived) {
+      li.classList.add("empty");
+      slips.push(li);
+      continue;
+    }
+
+    const job = state.jobs[i];
+    const slot = state.queue[i];
+    const id = document.createElement("span");
+    const tag = document.createElement("span");
+    const text = document.createElement("p");
+    id.className = "slip-id";
+    tag.className = "slip-tag";
+    id.textContent = job.id;
+    text.textContent = job.symptom;
+
+    if (i === state.jobIndex) {
+      li.classList.add("current");
+      tag.textContent = "At bench";
+    } else {
+      const ratio = slot.patience / shift.patience;
+      if (slot.angry) li.classList.add("angry");
+      else if (ratio < 0.4) li.classList.add("impatient");
+      tag.textContent = slot.angry ? "Fuming" : ratio < 0.4 ? "Impatient" : "Waiting";
+      const bar = document.createElement("i");
+      const fill = document.createElement("b");
+      bar.className = "patience";
+      fill.style.width = Math.round(ratio * 100) + "%";
+      bar.append(fill);
+      li.append(id, tag, text, bar);
+    }
+    if (i === state.jobIndex) li.append(id, tag, text);
+    if (slot.fresh) {
+      li.classList.add("fresh");
+      slot.fresh = false;
+    }
+    slips.push(li);
+  }
+
+  el.railSlips.replaceChildren(...slips);
+
+  const waiting = waitingCount();
+  const expected = shift.jobs - state.arrived;
+  const parts = [waiting === 1 ? "1 customer waiting" : waiting + " customers waiting"];
+  if (expected > 0) parts.push("next walk-in in " + state.nextArrivalIn + "s");
+  else parts.push("no more walk-ins today");
+  el.railStatus.textContent = parts.join(" · ");
+  el.rail.classList.toggle("busy", waiting >= 3);
 }
 
 function updateHud() {
@@ -678,6 +799,7 @@ function completeTicket() {
 function moveToNextTicketOrFinish() {
   if (state.jobIndex < mode().jobs - 1) {
     state.jobIndex += 1;
+    if (state.arrived <= state.jobIndex) customerArrives();
     state.stageIndex = 0;
     state.phase = "diagnosis";
     state.ticketMistakes = 0;
@@ -685,6 +807,7 @@ function moveToNextTicketOrFinish() {
     state.doublePayActive = false;
     startTicketTimer();
     renderDiagnosis();
+    renderRail();
     updateHud();
     return;
   }
@@ -719,6 +842,7 @@ function advance() {
 
 function finishShift() {
   stopTimer();
+  stopShopClock();
 
   const accuracy = state.resolvedAnswers
     ? Math.round((state.correctAnswers / state.resolvedAnswers) * 100)
@@ -831,6 +955,11 @@ function startDay() {
   state.ticketExpired = false;
   state.log = [];
   state.doublePayActive = false;
+  state.queue = [];
+  state.arrived = 0;
+  customerArrives();
+  if (["busy", "rush", "overtime"].includes(shift.typeKey)) customerArrives();
+  state.nextArrivalIn = shift.arrivalEvery;
 
   el.startScreen.hidden = true;
   el.shiftComplete.hidden = true;
@@ -839,7 +968,9 @@ function startDay() {
     " tickets scheduled. Future shifts stay hidden until you clock in."
   );
   startTicketTimer();
+  startShopClock();
   renderDiagnosis();
+  renderRail();
   updateHud();
 }
 
@@ -877,7 +1008,11 @@ el.powerupButtons.forEach(button => button.addEventListener("click", () => usePo
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
     stopTimer();
-  } else if (isShiftActive() && !state.answered && !state.ticketExpired && state.phase !== "payout") {
+    stopShopClock();
+    return;
+  }
+  if (isShiftActive()) startShopClock();
+  if (isShiftActive() && !state.answered && !state.ticketExpired && state.phase !== "payout") {
     runTimer();
   }
 });

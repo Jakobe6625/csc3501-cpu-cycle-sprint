@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="CPU Cycle Shop - diagnose and repair Computer Organization tickets while learning CSC 3501 topics.">
   <title>CPU Cycle Shop</title>
-  <link rel="stylesheet" href="css/style.css?v=week-4">
+  <link rel="stylesheet" href="css/style.css?v=week-5">
 </head>
 <body>
   <header class="topbar">
@@ -29,6 +29,14 @@
         <span>Satisfaction <strong id="satisfactionText">100%</strong></span>
         <div class="meter"><i id="satisfactionBar"></i></div>
       </div>
+    </section>
+
+    <section class="rail" aria-label="Order rail">
+      <div class="rail-head">
+        <h2>Order rail</h2>
+        <p id="railStatus" aria-live="polite">Doors open when you clock in.</p>
+      </div>
+      <ol id="railSlips" class="rail-slips"></ol>
     </section>
 
     <section class="game-grid">
@@ -98,6 +106,7 @@
         <ul class="rules">
           <li><strong>Diagnose first.</strong> Customers describe symptoms, not causes. A right call adds time; a wrong one costs it.</li>
           <li><strong>Then repair.</strong> Three steps per ticket, built around the topic you diagnosed.</li>
+          <li><strong>Watch the rail.</strong> Customers keep walking in while you work. Leave them waiting too long and satisfaction drops.</li>
           <li><strong>Get paid.</strong> Clean, fast repairs pay the most. Overtime shifts use harder topics and pay a premium.</li>
         </ul>
         <button id="startWeekBtn" class="primary" type="button">Clock in</button>
@@ -127,6 +136,6 @@
     </section>
   </main>
 
-  <script type="module" src="js/game.js?v=week-4"></script>
+  <script type="module" src="js/game.js?v=week-5"></script>
 </body>
 </html>
