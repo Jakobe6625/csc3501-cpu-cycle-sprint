@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="CPU Cycle Shop - diagnose and repair Computer Organization tickets while learning CSC 3501 topics.">
   <title>CPU Cycle Shop</title>
-  <link rel="stylesheet" href="css/style.css?v=week-5">
+  <link rel="stylesheet" href="css/style.css?v=week-6">
 </head>
 <body>
   <header class="topbar">
@@ -56,13 +56,6 @@
       </aside>
 
       <section class="workbench" aria-label="Workbench">
-        <ol class="pipeline">
-          <li class="station active" data-step="0"><b>1</b><div><strong>Diagnose</strong><small>Identify the topic</small></div></li>
-          <li class="station" data-step="1"><b>2</b><div><strong>Inspect</strong><small>Trace the problem</small></div></li>
-          <li class="station" data-step="2"><b>3</b><div><strong>Repair</strong><small>Apply the fix</small></div></li>
-          <li class="station" data-step="3"><b>4</b><div><strong>Verify</strong><small>Confirm the result</small></div></li>
-        </ol>
-
         <article class="console">
           <div class="console-top">
             <div>
@@ -95,6 +88,15 @@
         </article>
       </section>
     </section>
+
+    <nav class="station-bar" aria-label="Repair stations">
+      <ol class="pipeline">
+        <li class="station active" data-step="0"><b>1</b><div><strong>Diagnose</strong><small>Identify the topic</small></div></li>
+        <li class="station" data-step="1"><b>2</b><div><strong>Inspect</strong><small>Trace the problem</small></div></li>
+        <li class="station" data-step="2"><b>3</b><div><strong>Repair</strong><small>Apply the fix</small></div></li>
+        <li class="station" data-step="3"><b>4</b><div><strong>Verify</strong><small>Confirm the result</small></div></li>
+      </ol>
+    </nav>
 
     <section id="startScreen" class="modal">
       <div class="modal-card mode-card">
@@ -136,6 +138,6 @@
     </section>
   </main>
 
-  <script type="module" src="js/game.js?v=week-5"></script>
+  <script type="module" src="js/game.js?v=week-6"></script>
 </body>
 </html>
